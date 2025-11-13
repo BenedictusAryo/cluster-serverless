@@ -1,0 +1,106 @@
+# Default values for cluster-serverless
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  clusterName: cluster-serverless
+  namespace: serverless-system
+
+# Cilium CNI configuration
+cilium:
+  enabled: true
+  version: "1.14.5"
+  hubble:
+    enabled: true
+    ui:
+      enabled: true
+  kubeProxyReplacement: strict
+  k8sServiceHost: ""
+  k8sServicePort: ""
+
+# Knative Serving configuration
+knativeServing:
+  enabled: true
+  version: "1.11.0"
+  namespace: knative-serving
+  domainMapping:
+    enabled: true
+  autoscaling:
+    minScale: 0
+    maxScale: 10
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+
+# Knative Eventing configuration
+knativeEventing:
+  enabled: true
+  version: "1.11.0"
+  namespace: knative-eventing
+  broker:
+    type: MTChannelBasedBroker
+  channel:
+    type: InMemoryChannel
+
+# Kourier Ingress configuration
+kourier:
+  enabled: true
+  version: "1.11.0"
+  namespace: kourier-system
+  service:
+    type: LoadBalancer
+    annotations: {}
+
+# OpenTelemetry configuration
+opentelemetry:
+  enabled: true
+  namespace: observability
+  collector:
+    mode: deployment
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  exporters:
+    jaeger:
+      enabled: true
+    prometheus:
+      enabled: true
+
+# Jaeger configuration
+jaeger:
+  enabled: true
+  namespace: observability
+  strategy: allInOne
+  storage:
+    type: memory
+  ui:
+    enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+
+# Cloudflare Tunnel configuration
+cloudflareTunnel:
+  enabled: false
+  namespace: cloudflare-tunnel
+  tunnelToken: ""
+  tunnelId: ""
+  accountId: ""
+  ingress:
+    - hostname: ""
+      service: http://kourier.kourier-system.svc.cluster.local
+  replicas: 2

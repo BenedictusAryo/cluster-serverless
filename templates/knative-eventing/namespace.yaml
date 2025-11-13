@@ -1,0 +1,10 @@
+{{- if .Values.knativeEventing.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.knativeEventing.namespace }}
+  labels:
+    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}

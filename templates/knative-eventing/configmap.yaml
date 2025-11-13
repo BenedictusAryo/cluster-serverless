@@ -1,0 +1,15 @@
+{{- if .Values.knativeEventing.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-broker
+  namespace: {{ .Values.knativeEventing.namespace }}
+  labels:
+    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  broker-class: {{ .Values.knativeEventing.broker.type }}
+  channel-template-spec: |
+    apiVersion: messaging.knative.dev/v1
+    kind: {{ .Values.knativeEventing.channel.type }}
+{{- end }}
