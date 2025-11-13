@@ -1,0 +1,29 @@
+{{- if .Values.kourier.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier
+  namespace: {{ .Values.kourier.namespace }}
+  labels:
+    app.kubernetes.io/name: kourier
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: ingress
+  {{- with .Values.kourier.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.kourier.service.type }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kourier
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

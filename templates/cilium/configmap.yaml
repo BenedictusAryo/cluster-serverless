@@ -1,0 +1,21 @@
+{{- if .Values.cilium.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cilium-config
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: cilium
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  enable-ipv4: "true"
+  enable-ipv6: "false"
+  hubble-enabled: {{ .Values.cilium.hubble.enabled | quote }}
+  kube-proxy-replacement: {{ .Values.cilium.kubeProxyReplacement | quote }}
+  {{- if .Values.cilium.k8sServiceHost }}
+  k8s-service-host: {{ .Values.cilium.k8sServiceHost | quote }}
+  {{- end }}
+  {{- if .Values.cilium.k8sServicePort }}
+  k8s-service-port: {{ .Values.cilium.k8sServicePort | quote }}
+  {{- end }}
+{{- end }}
