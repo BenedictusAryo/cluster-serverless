@@ -1,52 +1,87 @@
 # cluster-serverless
 
-Serverless Application in Top of Kubernetes Cluster
+**GitOps-Powered Serverless Platform for VPS/Homelab** 🚀
 
-A comprehensive Helm chart for deploying a complete serverless Kubernetes platform with networking, observability, and event-driven architecture components.
+A production-ready, Helm-based serverless Kubernetes platform optimized for:
+- 🏠 **Homelab deployments** (works behind CGNAT!)
+- ☁️ **VPS hosting** (single or multi-node)
+- 🔀 **Hybrid setups** (VPS controller + homelab workers)
+- 💰 **Cost-effective** serverless at 70-90% savings vs managed platforms
 
-## Overview
+## 🎯 What This Provides
 
-This Helm chart provides a production-ready serverless platform on Kubernetes, featuring:
+A complete serverless stack deployed via GitOps (ArgoCD) including:
 
-- **Cilium**: Advanced eBPF-based networking and security
-- **Knative Serving**: Serverless workload execution and auto-scaling
-- **Knative Eventing**: Event-driven architecture capabilities
-- **Kourier**: Lightweight ingress controller for Knative
-- **OpenTelemetry**: Comprehensive observability and metrics collection
-- **Jaeger**: Distributed tracing for microservices
-- **Cloudflare Tunnel**: Secure external access without exposing ports
+- **🕸️ Cilium** - eBPF-based networking (50-70% lighter than Istio)
+- **🔄 Knative Serving** - Auto-scaling HTTP services (scale-to-zero)
+- **⚡ Knative Eventing** - Event-driven architecture
+- **🚪 Kourier** - Lightweight ingress (production-ready alternative to Istio)
+- **📊 OpenTelemetry** - Distributed tracing and metrics
+- **🔍 Jaeger** - Tracing UI and analysis
+- **🔒 Cloudflare Tunnel** - Secure external access (no exposed ports!)
 
-## Prerequisites
+## 🌟 Why This Stack?
 
-- Kubernetes cluster (v1.25+)
-- Helm 3.x installed
-- kubectl configured to access your cluster
+### Traditional Serverless Challenges
+- ❌ Expensive ($200-400/month for managed K8s)
+- ❌ Vendor lock-in (AWS Lambda, Cloud Run, etc.)
+- ❌ Heavy resource requirements (Istio service mesh)
+- ❌ Can't run on homelab behind CGNAT
+- ❌ Complex networking and SSL setup
 
-## Installation
+### Our Solution
+- ✅ **$15-120/month** (70-90% cost savings)
+- ✅ **Portable** (runs anywhere Kubernetes runs)
+- ✅ **Lightweight** (Kourier + Cilium vs Istio)
+- ✅ **Works behind CGNAT** (Cloudflare Tunnel)
+- ✅ **Automatic SSL/TLS** (via Cloudflare)
+- ✅ **GitOps-managed** (declarative, version-controlled)
 
-### Quick Start
+## 📚 Prerequisites
+
+### Kubernetes Cluster
+Deployed via [k0s-cluster-bootstrap](https://github.com/BenedictusAryo/k0s-cluster-bootstrap):
+- **Kubernetes**: 1.28+ (via k0s)
+- **Nodes**: 1-10 (VPS/homelab mix supported)
+- **Resources**: 8GB RAM, 4 vCPU minimum per node
+
+### External Requirements
+- **Domain**: Managed in Cloudflare DNS (e.g., `benedict-aryo.com`)
+- **ArgoCD**: Installed and configured
+- **Sealed Secrets**: For secure secret management
+
+## 🚀 Installation
+
+### Automated Deployment (Recommended)
+
+This chart is automatically deployed via ArgoCD when you run the [k0s-cluster-bootstrap](https://github.com/BenedictusAryo/k0s-cluster-bootstrap) setup:
 
 ```bash
-# Add the repository (if hosted)
-helm repo add cluster-serverless https://benedictusaryo.github.io/cluster-serverless
-helm repo update
-
-# Install with default values
-helm install my-serverless cluster-serverless/cluster-serverless
+# From k0s-cluster-bootstrap repository
+./scripts/setup-argocd.sh
 ```
 
-### Install from source
+ArgoCD will:
+1. Deploy this Helm chart
+2. Install all components (Cilium, Knative, Kourier, etc.)
+3. Configure networking and observability
+4. Set up automatic sync and self-healing
+
+### Manual Deployment (Development)
+
+For testing or development:
 
 ```bash
 # Clone the repository
 git clone https://github.com/BenedictusAryo/cluster-serverless.git
 cd cluster-serverless
 
-# Install the chart
-helm install my-serverless .
+# Install with Helm
+helm install cluster-serverless . \
+  --create-namespace \
+  --namespace serverless-system \
+  --set global.domain=benedict-aryo.com
 ```
-
-### Custom Installation
 
 Create a custom `values.yaml` file:
 
