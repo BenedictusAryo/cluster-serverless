@@ -8,13 +8,10 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  sources:
-    - repoURL: https://github.com/knative/eventing
-      targetRevision: knative-v{{ .Values.knativeEventing.version }}
-      path: config/core
-    - repoURL: https://github.com/knative/eventing
-      targetRevision: knative-v{{ .Values.knativeEventing.version }}
-      path: config/300-crds
+  source:
+    repoURL: https://github.com/knative/eventing
+    targetRevision: knative-v{{ .Values.knativeEventing.version }}
+    path: config/core
   destination:
     server: https://kubernetes.default.svc
     namespace: knative-eventing
@@ -24,6 +21,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-    syncWaves:
-      - wave: 2
 {{- end }}
