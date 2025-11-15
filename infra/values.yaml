@@ -151,13 +151,8 @@ jaeger:
 # Cloudflare Tunnel configuration
 # Secure external access without exposed ports
 cloudflareTunnel:
-  enabled: false  # Enable after creating sealed secret
+  enabled: true  # Enabled - sealed secret created
   namespace: cloudflare-tunnel
-  
-  # Tunnel configuration (set after creation)
-  tunnelName: k0s-homelab-tunnel
-  tunnelId: ""  # Set this to your tunnel ID from Cloudflare
-  accountId: ""  # Set this to your Cloudflare account ID
   
   # Replica count for HA
   replicas: 2
