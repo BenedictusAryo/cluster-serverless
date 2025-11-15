@@ -42,7 +42,7 @@ spec:
           name: ui
           protocol: TCP
         - containerPort: 14268
-          name: jaeger-collector
+          name: collector-http
           protocol: TCP
         env:
         - name: COLLECTOR_ZIPKIN_HOST_PORT
