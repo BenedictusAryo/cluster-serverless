@@ -49,6 +49,9 @@ knativeEventing:
 kourier:
   enabled: true
   version: "1.17.0"
+  
+  # Service configuration
+  service:
     type: ClusterIP  # Internal only, exposed via Cloudflare Tunnel
     annotations: {}
   
