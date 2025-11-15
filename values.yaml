@@ -10,9 +10,10 @@ global:
 
 # Cilium CNI configuration
 # eBPF-based networking and security
+# NOTE: Cilium is installed directly via setup-argocd.sh, not via Helm
 cilium:
-  enabled: true
-  version: "1.16.3"
+  enabled: false
+  version: "1.18.4"
   
   # Disable Envoy proxy (we use Kourier)
   l7Proxy: false
