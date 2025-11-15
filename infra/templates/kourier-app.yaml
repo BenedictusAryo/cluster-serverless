@@ -1,0 +1,34 @@
+{{- if .Values.kourier.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kourier
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/knative-extensions/net-kourier
+    targetRevision: knative-v{{ .Values.kourier.version }}
+    path: config
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kourier-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    syncWaves:
+      - wave: 2
+  # Configure Knative to use Kourier after deployment
+  postSync:
+    - kind: ConfigMap
+      name: config-network
+      namespace: knative-serving
+      patch: |
+        data:
+          ingress-class: "kourier.ingress.networking.knative.dev"
+{{- end }}

@@ -1,8 +1,8 @@
 apiVersion: v2
-name: cluster-serverless
-description: A Helm chart for deploying a complete serverless Kubernetes cluster with observability
+name: cluster-serverless-infra
+description: Infrastructure ArgoCD Applications for serverless platform (Cilium, Knative, Kourier, etc)
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "1.0"
 keywords:
   - kubernetes
@@ -10,6 +10,8 @@ keywords:
   - knative
   - observability
   - cilium
+  - argocd
+  - gitops
 maintainers:
   - name: BenedictusAryo
 home: https://github.com/BenedictusAryo/cluster-serverless

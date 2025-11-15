@@ -1,0 +1,29 @@
+{{- if .Values.knativeEventing.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: knative-eventing
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/knative/eventing
+      targetRevision: knative-v{{ .Values.knativeEventing.version }}
+      path: config/core
+    - repoURL: https://github.com/knative/eventing
+      targetRevision: knative-v{{ .Values.knativeEventing.version }}
+      path: config/300-crds
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: knative-eventing
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    syncWaves:
+      - wave: 2
+{{- end }}
