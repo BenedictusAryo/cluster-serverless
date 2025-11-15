@@ -34,10 +34,6 @@ spec:
             secretKeyRef:
               name: {{ .Values.cloudflareTunnel.credentials.secretName }}
               key: tunnel-token
-        livenessProbe:
-          httpGet:
-            path: /ready
-            port: 2000
-          initialDelaySeconds: 10
-          periodSeconds: 10
+        resources:
+{{ toYaml .Values.cloudflareTunnel.resources | indent 10 }}
 {{- end }}
