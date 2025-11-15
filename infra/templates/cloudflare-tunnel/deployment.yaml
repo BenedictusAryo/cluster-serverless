@@ -32,8 +32,8 @@ spec:
         - name: TUNNEL_TOKEN
           valueFrom:
             secretKeyRef:
-              name: cloudflare-tunnel-token
-              key: token
+              name: {{ .Values.cloudflareTunnel.credentials.secretName }}
+              key: tunnel-token
         livenessProbe:
           httpGet:
             path: /ready
