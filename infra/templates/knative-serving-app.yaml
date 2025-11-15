@@ -1,24 +1,18 @@
 {{- if .Values.knativeServing.enabled }}
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+---
+apiVersion: v1
+kind: Namespace
 metadata:
   name: knative-serving
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knative-serving-install
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/knative/serving
-    targetRevision: knative-v{{ .Values.knativeServing.version }}
-    path: config/core
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: knative-serving
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+data:
+  install.sh: |
+    #!/bin/bash
+    kubectl apply -f https://github.com/knative/serving/releases/download/knative-v{{ .Values.knativeServing.version }}/serving-crds.yaml
+    kubectl apply -f https://github.com/knative/serving/releases/download/knative-v{{ .Values.knativeServing.version }}/serving-core.yaml
 {{- end }}

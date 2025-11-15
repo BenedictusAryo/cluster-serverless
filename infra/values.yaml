@@ -35,19 +35,19 @@ sealedSecrets:
 # Knative Serving configuration
 # Serverless request-driven workloads
 knativeServing:
-  enabled: true
+  enabled: false  # Temporarily disabled - install manually
   version: "1.17.1"
 
 # Knative Eventing configuration  
 # Event-driven architecture
 knativeEventing:
-  enabled: true
+  enabled: false  # Temporarily disabled - install manually
   version: "1.17.0"
 
 # Kourier Ingress configuration
 # Lightweight alternative to Istio
 kourier:
-  enabled: true
+  enabled: false  # Temporarily disabled - install manually
   version: "1.17.0"
   
   # Service configuration
