@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: knative-serving
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -22,6 +24,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - Replace=true
-    syncWaves:
-      - wave: 0
 {{- end }}

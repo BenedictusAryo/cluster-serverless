@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: kourier
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -21,8 +23,6 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-    syncWaves:
-      - wave: 2
   # Configure Knative to use Kourier after deployment
   postSync:
     - kind: ConfigMap
