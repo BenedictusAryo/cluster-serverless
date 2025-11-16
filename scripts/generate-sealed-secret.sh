@@ -24,7 +24,7 @@ fi
 echo "🔍 Checking Sealed Secrets controller..."
 if ! kubectl get deployment -n kube-system sealed-secrets-controller &>/dev/null; then
     echo "❌ Sealed Secrets controller not found in cluster"
-    echo "   Install with: kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml"
+    echo "   Make sure you've run the k0s-cluster-bootstrap setup scripts first"
     exit 1
 fi
 echo "✅ Sealed Secrets controller is running"
@@ -32,7 +32,12 @@ echo ""
 
 # Interactive input
 echo "📋 Cloudflare Tunnel Configuration"
-echo "   (Get these from https://one.dash.cloudflare.com/)"
+echo "   (Get your tunnel token from https://one.dash.cloudflare.com/)"
+echo ""
+echo "   Steps to get your tunnel token:"
+echo "   1. Go to Zero Trust dashboard → Networks → Tunnels"
+echo "   2. Create a new tunnel or select existing one"
+echo "   3. Copy the tunnel token from the installation command"
 echo ""
 
 read -p "Enter Cloudflare Tunnel Token: " TUNNEL_TOKEN
@@ -41,15 +46,17 @@ if [ -z "$TUNNEL_TOKEN" ]; then
     exit 1
 fi
 
-read -p "Enter Cloudflare Tunnel ID (optional): " TUNNEL_ID
-read -p "Enter Cloudflare Account ID (optional): " ACCOUNT_ID
+# Determine script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATE_DIR="${SCRIPT_DIR}/../infra/templates/cloudflare-tunnel"
+SECRET_FILE="${TEMPLATE_DIR}/secret.yaml"
 
-# Create namespace if not exists
-kubectl create namespace cloudflare-tunnel --dry-run=client -o yaml | kubectl apply -f -
+# Create namespace if not exists (for kubeseal to work)
+kubectl create namespace cloudflare-tunnel --dry-run=client -o yaml | kubectl apply -f - &>/dev/null
 
 # Create temporary secret
 echo ""
-echo "🔒 Creating sealed secret..."
+echo "🔒 Generating sealed secret..."
 
 TEMP_SECRET=$(mktemp)
 cat > "$TEMP_SECRET" <<EOF
@@ -63,42 +70,57 @@ stringData:
   tunnel-token: "${TUNNEL_TOKEN}"
 EOF
 
-# Add optional fields
-if [ ! -z "$TUNNEL_ID" ]; then
-    echo "  tunnel-id: \"${TUNNEL_ID}\"" >> "$TEMP_SECRET"
-fi
+# Generate sealed secret and update template
+cat > "$SECRET_FILE" <<EOF
+# Cloudflare Tunnel Sealed Secret
+# Generated on: $(date)
+# 
+# This secret is encrypted with the cluster's Sealed Secrets public key
+# and can only be decrypted by the sealed-secrets-controller in the cluster.
+# 
+# To regenerate: run scripts/generate-sealed-secret.sh
+{{- if .Values.cloudflareTunnel.enabled }}
+EOF
 
-if [ ! -z "$ACCOUNT_ID" ]; then
-    echo "  account-id: \"${ACCOUNT_ID}\"" >> "$TEMP_SECRET"
-fi
+kubeseal --controller-name=sealed-secrets-controller \
+         --controller-namespace=kube-system \
+         --format=yaml < "$TEMP_SECRET" >> "$SECRET_FILE"
 
-# Generate sealed secret
-SEALED_SECRET_FILE="cloudflare-tunnel-sealed-secret.yaml"
-kubeseal --format=yaml < "$TEMP_SECRET" > "$SEALED_SECRET_FILE"
+echo "{{- end }}" >> "$SECRET_FILE"
 
 # Clean up temp file
 rm "$TEMP_SECRET"
 
-echo "✅ Sealed secret generated: $SEALED_SECRET_FILE"
+echo "✅ Sealed secret generated and saved to: infra/templates/cloudflare-tunnel/secret.yaml"
 echo ""
 echo "📝 Next Steps:"
-echo "   1. Commit the sealed secret to Git:"
-echo "      git add $SEALED_SECRET_FILE"
-echo "      git commit -m 'Add Cloudflare Tunnel sealed secret'"
-echo "      git push"
 echo ""
-echo "   2. Enable Cloudflare Tunnel in values.yaml:"
-echo "      cloudflareTunnel:"
-echo "        enabled: true"
+echo "   1. Review the generated secret:"
+echo "      cat ${SECRET_FILE}"
 echo ""
-echo "   3. Apply the sealed secret (or let ArgoCD sync it):"
-echo "      kubectl apply -f $SEALED_SECRET_FILE"
+echo "   2. Configure Public Hostnames in Cloudflare Zero Trust dashboard:"
+echo "      https://one.dash.cloudflare.com/ → Networks → Tunnels → (your tunnel)"
+echo "      → Public Hostname tab → Add public hostname"
 echo ""
-echo "   4. Verify the secret was created:"
+echo "      Recommended hostnames:"
+echo "      - argocd.benedict-aryo.com → argocd-server.argocd.svc.cluster.local:443"
+echo "        ✓ Enable 'No TLS Verify'"
+echo "      - jaeger.benedict-aryo.com → jaeger-query.observability.svc.cluster.local:16686"
+echo "      - *.benedict-aryo.com → kourier-gateway.kourier-system.svc.cluster.local:80"
+echo "        (For Knative Services)"
+echo ""
+echo "   3. Commit and push to trigger ArgoCD sync:"
+echo "      git add infra/templates/cloudflare-tunnel/secret.yaml"
+echo "      git commit -m 'Update Cloudflare Tunnel sealed secret'"
+echo "      git push origin main"
+echo ""
+echo "   4. Verify deployment (after ArgoCD sync):"
+echo "      kubectl get sealedsecrets -n cloudflare-tunnel"
 echo "      kubectl get secret cloudflare-tunnel-secret -n cloudflare-tunnel"
+echo "      kubectl get pods -n cloudflare-tunnel"
 echo ""
-echo "🌐 Your services will be accessible via:"
-echo "   - https://*.benedict-aryo.com (Knative services)"
-echo "   - https://argocd.benedict-aryo.com (ArgoCD UI)"
-echo "   - https://jaeger.benedict-aryo.com (Jaeger tracing)"
+echo "   5. Check tunnel status in Cloudflare dashboard:"
+echo "      Should show as 'Healthy' with 2 connectors"
+echo ""
+echo "🎉 Your services will be accessible via Cloudflare Tunnel!"
 echo ""
