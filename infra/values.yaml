@@ -37,7 +37,7 @@ sealedSecrets:
 # Managed via Knative Operator CRs
 knativeServing:
   enabled: true
-  version: "1.17.1"
+  version: "1.18.0"
   
   # Kourier ingress (enabled via operator)
   ingress:
@@ -49,7 +49,7 @@ knativeServing:
 # Managed via Knative Operator CRs
 knativeEventing:
   enabled: true
-  version: "1.17.0"
+  version: "1.18.0"
 
 # OpenTelemetry configuration
 # Metrics and trace collection
