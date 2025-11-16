@@ -136,18 +136,19 @@ jaeger:
 # Cloudflare Tunnel configuration
 # Secure external access without exposed ports
 cloudflareTunnel:
-  enabled: true  # Enabled - sealed secret created
+  enabled: true  # Enabled - sealed secret in templates/cloudflare-tunnel/secret.yaml
   namespace: cloudflare-tunnel
   
   # Replica count for HA
   replicas: 2
   
-  # Credentials (use sealed secret)
-  # Create with: kubectl create secret generic cloudflare-tunnel-secret \
-  #   --from-literal=tunnel-token=YOUR_TOKEN \
-  #   -n cloudflare-tunnel
+  # Credentials (SealedSecret deployed via GitOps)
+  # To update token:
+  # 1. Get new token from Cloudflare Zero Trust dashboard
+  # 2. Create new sealed secret (see templates/cloudflare-tunnel/secret.yaml comments)
+  # 3. Commit and push to Git
   credentials:
-    useExistingSecret: true
+    useExistingSecret: false  # SealedSecret is managed in templates/
     secretName: cloudflare-tunnel-secret
   
   # Ingress rules (configured automatically)
