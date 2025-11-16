@@ -1,24 +1,48 @@
 {{- if .Values.jaeger.ingress.enabled }}
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: serving.knative.dev/v1
+kind: Service
 metadata:
-  name: jaeger-query
+  name: jaeger-proxy
   namespace: {{ .Values.jaeger.namespace }}
-  labels:
-    app.kubernetes.io/name: jaeger-query-ingress
-    app.kubernetes.io/part-of: jaeger
 spec:
-  ingressClassName: kourier.ingress.networking.knative.dev
-  rules:
-  - host: {{ .Values.jaeger.ingress.hostname }}
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: jaeger-query
-            port:
-              number: 16686
+  template:
+    metadata:
+      annotations:
+        # Scale to 1 always (not scale-to-zero)
+        autoscaling.knative.dev/min-scale: "1"
+        autoscaling.knative.dev/max-scale: "1"
+    spec:
+      containers:
+      - image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: jaeger-nginx-proxy
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-nginx-proxy
+  namespace: {{ .Values.jaeger.namespace }}
+data:
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 80;
+        location / {
+          proxy_pass http://jaeger-query.{{ .Values.jaeger.namespace }}.svc.cluster.local:16686;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+      }
+    }
 {{- end }}

@@ -1,24 +1,65 @@
 {{- if .Values.argocd.ingress.enabled }}
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: v1
+kind: Service
 metadata:
-  name: argocd-server
+  name: argocd-server-kourier
   namespace: argocd
-  labels:
-    app.kubernetes.io/name: argocd-server-ingress
-    app.kubernetes.io/part-of: argocd
 spec:
-  ingressClassName: kourier.ingress.networking.knative.dev
-  rules:
-  - host: {{ .Values.argocd.ingress.hostname }}
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: argocd-server
-            port:
-              number: 443
-{{- end }}
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https  
+    port: 443
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: argocd-server
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: argocd-proxy
+  namespace: argocd
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scale to 1 always (not scale-to-zero)
+        autoscaling.knative.dev/min-scale: "1"
+        autoscaling.knative.dev/max-scale: "1"
+    spec:
+      containers:
+      - image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: argocd-nginx-proxy
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-nginx-proxy
+  namespace: argocd
+data:
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 80;
+        location / {
+          proxy_pass https://argocd-server.argocd.svc.cluster.local:443;
+          proxy_ssl_verify off;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+      }
+    }
+{{- end}}
