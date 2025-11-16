@@ -51,6 +51,14 @@ knativeEventing:
   enabled: true
   version: "1.18.0"
 
+# ArgoCD Ingress Configuration
+# Provides external access to ArgoCD UI via Cloudflare Tunnel + Kourier
+argocd:
+  ingress:
+    enabled: true
+    hostname: argocd.benedict-aryo.com
+    # Traffic: Cloudflare → Tunnel → Kourier → ArgoCD Server (HTTPS)
+
 # OpenTelemetry configuration
 # Metrics and trace collection
 opentelemetry:
@@ -111,6 +119,12 @@ jaeger:
   namespace: observability
   strategy: allInOne  # Simple deployment for VPS/homelab
   
+  # Ingress for external access
+  ingress:
+    enabled: true
+    hostname: jaeger.benedict-aryo.com
+    # Traffic: Cloudflare → Tunnel → Kourier → Jaeger Query (HTTP)
+  
   # Storage configuration
   storage:
     type: memory
@@ -146,7 +160,7 @@ cloudflareTunnel:
   
   # Tunnel ID (required only for config-based mode)
   # Get from: Cloudflare dashboard → Tunnels → (your tunnel) → Overview → Tunnel ID
-  tunnelId: ""
+  tunnelId: "a5f1d2be-698e-452f-883d-5f54dfc8d19d"
   
   # Replica count for HA
   replicas: 2
@@ -160,12 +174,17 @@ cloudflareTunnel:
   
   # Ingress Rules
   # ============
+  # With single wildcard route approach (RECOMMENDED):
+  #   Configure in Cloudflare: *.benedict-aryo.com → kourier-gateway
+  #   Then manage ALL routing via Kubernetes Ingress/Knative in Git
+  #   These values below are NOT USED - kept for reference only
+  #
   # Token-based mode (useConfigFile: false):
-  #   These are DOCUMENTATION ONLY - configure manually in Cloudflare dashboard:
-  #   https://one.dash.cloudflare.com/ → Tunnels → Public Hostname tab
+  #   Configure single wildcard in Cloudflare dashboard manually
   #
   # Config-based mode (useConfigFile: true):
-  #   These are APPLIED AUTOMATICALLY via GitOps - edit and commit to update routes
+  #   These are applied automatically but NOT RECOMMENDED
+  #   Use Kubernetes Ingress instead for better GitOps control
   ingress:
     # Wildcard for all Knative Services
     - hostname: "*.benedict-aryo.com"

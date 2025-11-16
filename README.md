@@ -28,6 +28,7 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 - ❌ Heavy resource requirements (Istio service mesh)
 - ❌ Can't run on homelab behind CGNAT
 - ❌ Complex networking and SSL setup
+- ❌ Manual route configuration in dashboards
 
 ### Our Solution
 - ✅ **$15-120/month** (70-90% cost savings)
@@ -35,7 +36,71 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 - ✅ **Lightweight** (Kourier + Cilium vs Istio)
 - ✅ **Works behind CGNAT** (Cloudflare Tunnel)
 - ✅ **Automatic SSL/TLS** (via Cloudflare)
-- ✅ **GitOps-managed** (declarative, version-controlled)
+- ✅ **True GitOps routing** (single wildcard + Kourier)
+- ✅ **Add apps via git push** (no manual dashboard updates)
+
+## 🔀 Routing Architecture
+
+### How Traffic Flows
+
+```
+Internet → Cloudflare Edge → Tunnel (*.domain) → Kourier → Routes by hostname → Your Apps
+```
+
+**Cloudflare Dashboard** (ONE route, configured once):
+- `*.benedict-aryo.com` → `https://kourier-gateway.kourier-system.svc.cluster.local:443`
+
+**Git** (ALL application routing):
+- Kubernetes Ingress resources for regular apps
+- Knative Service specs for serverless apps
+
+**Example: Deploy ArgoCD Access via Git**
+
+```yaml
+# infra/templates/argocd/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  ingressClassName: kourier  # Uses Kourier as ingress controller
+  rules:
+  - host: argocd.benedict-aryo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              number: 443
+```
+
+**Example: Deploy Serverless App**
+
+```yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - image: gcr.io/knative-samples/helloworld-go
+```
+
+Automatically accessible at: `hello.default.benedict-aryo.com`
+
+**Why This Approach?**
+- ✅ Single wildcard route in Cloudflare (never changes)
+- ✅ All routing logic in Git (version controlled)
+- ✅ Kourier acts as Layer 7 load balancer
+- ✅ Add new apps = git push (no dashboard needed)
+- ✅ Production-grade pattern
 
 ## 📚 Prerequisites
 
