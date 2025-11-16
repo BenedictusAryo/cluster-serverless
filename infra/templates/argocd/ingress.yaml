@@ -5,19 +5,11 @@ kind: Ingress
 metadata:
   name: argocd-server
   namespace: argocd
-  annotations:
-    # Kourier ingress class
-    kubernetes.io/ingress.class: kourier.ingress.networking.knative.dev
-    # Backend protocol (ArgoCD uses HTTPS)
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    # Disable SSL redirect (Cloudflare handles TLS)
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Allow insecure backend (self-signed cert)
-    nginx.ingress.kubernetes.io/ssl-passthrough: "false"
   labels:
     app.kubernetes.io/name: argocd-server-ingress
     app.kubernetes.io/part-of: argocd
 spec:
+  ingressClassName: kourier.ingress.networking.knative.dev
   rules:
   - host: {{ .Values.argocd.ingress.hostname }}
     http:
@@ -28,5 +20,5 @@ spec:
           service:
             name: argocd-server
             port:
-              name: https
+              number: 443
 {{- end }}

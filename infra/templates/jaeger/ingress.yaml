@@ -5,15 +5,11 @@ kind: Ingress
 metadata:
   name: jaeger-query
   namespace: {{ .Values.jaeger.namespace }}
-  annotations:
-    # Kourier ingress class
-    kubernetes.io/ingress.class: kourier.ingress.networking.knative.dev
-    # Backend protocol (HTTP)
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
   labels:
     app.kubernetes.io/name: jaeger-query-ingress
     app.kubernetes.io/part-of: jaeger
 spec:
+  ingressClassName: kourier.ingress.networking.knative.dev
   rules:
   - host: {{ .Values.jaeger.ingress.hostname }}
     http:
