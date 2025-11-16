@@ -139,30 +139,45 @@ cloudflareTunnel:
   enabled: true  # Enabled - sealed secret in templates/cloudflare-tunnel/secret.yaml
   namespace: cloudflare-tunnel
   
+  # Deployment mode:
+  # - false (default): Token-based - simple but requires manual dashboard config for routes
+  # - true: Config-based - GitOps managed routes but requires tunnel ID and credentials.json
+  useConfigFile: false
+  
+  # Tunnel ID (required only for config-based mode)
+  # Get from: Cloudflare dashboard → Tunnels → (your tunnel) → Overview → Tunnel ID
+  tunnelId: ""
+  
   # Replica count for HA
   replicas: 2
   
   # Credentials (SealedSecret deployed via GitOps)
-  # To update token:
-  # 1. Get new token from Cloudflare Zero Trust dashboard
-  # 2. Create new sealed secret (see templates/cloudflare-tunnel/secret.yaml comments)
-  # 3. Commit and push to Git
+  # Token-based mode: Only needs tunnel-token in secret
+  # Config-based mode: Needs credentials.json in secret
   credentials:
     useExistingSecret: false  # SealedSecret is managed in templates/
     secretName: cloudflare-tunnel-secret
   
-  # Ingress rules (configured automatically)
+  # Ingress Rules
+  # ============
+  # Token-based mode (useConfigFile: false):
+  #   These are DOCUMENTATION ONLY - configure manually in Cloudflare dashboard:
+  #   https://one.dash.cloudflare.com/ → Tunnels → Public Hostname tab
+  #
+  # Config-based mode (useConfigFile: true):
+  #   These are APPLIED AUTOMATICALLY via GitOps - edit and commit to update routes
   ingress:
+    # Wildcard for all Knative Services
     - hostname: "*.benedict-aryo.com"
       service: http://kourier-gateway.kourier-system.svc.cluster.local:80
     
-    # ArgoCD access
+    # ArgoCD UI access
     - hostname: argocd.benedict-aryo.com
       service: https://argocd-server.argocd.svc.cluster.local:443
       originRequest:
-        noTLSVerify: true
+        noTLSVerify: true  # Required for self-signed certs
     
-    # Jaeger UI access
+    # Jaeger tracing UI access
     - hostname: jaeger.benedict-aryo.com
       service: http://jaeger-query.observability.svc.cluster.local:16686
   
