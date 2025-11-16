@@ -34,37 +34,22 @@ sealedSecrets:
 
 # Knative Serving configuration
 # Serverless request-driven workloads
+# Managed via Knative Operator CRs
 knativeServing:
   enabled: true
   version: "1.17.1"
+  
+  # Kourier ingress (enabled via operator)
+  ingress:
+    kourier:
+      enabled: true
 
 # Knative Eventing configuration  
 # Event-driven architecture
+# Managed via Knative Operator CRs
 knativeEventing:
   enabled: true
   version: "1.17.0"
-
-# Kourier Ingress configuration
-# Lightweight alternative to Istio
-kourier:
-  enabled: true
-  version: "1.17.0"
-  
-  # Service configuration
-  service:
-    type: ClusterIP  # Internal only, exposed via Cloudflare Tunnel
-    annotations: {}
-  
-  # Gateway resources
-  gateway:
-    replicas: 2  # HA setup
-    resources:
-      requests:
-        cpu: 100m
-        memory: 64Mi
-      limits:
-        cpu: 500m
-        memory: 128Mi
 
 # OpenTelemetry configuration
 # Metrics and trace collection
