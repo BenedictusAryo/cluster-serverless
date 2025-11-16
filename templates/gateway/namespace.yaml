@@ -1,0 +1,12 @@
+{{- if .Values.cilium.gatewayAPI.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-system
+  labels:
+    app.kubernetes.io/name: gateway-system
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+{{- end }}
