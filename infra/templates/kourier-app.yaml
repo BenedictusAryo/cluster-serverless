@@ -10,10 +10,12 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/knative-extensions/net-kourier
-    targetRevision: knative-v{{ .Values.kourier.version }}
-    path: config
+  sources:
+    - repoURL: https://github.com/knative-extensions/net-kourier
+      targetRevision: knative-v{{ .Values.kourier.version }}
+      path: .
+      directory:
+        include: 'kourier.yaml'
   destination:
     server: https://kubernetes.default.svc
     namespace: kourier-system

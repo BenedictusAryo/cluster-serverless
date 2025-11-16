@@ -10,10 +10,12 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/knative/serving
-    targetRevision: knative-v{{ .Values.knativeServing.version }}
-    path: config
+  sources:
+    - repoURL: https://github.com/knative/serving
+      targetRevision: knative-v{{ .Values.knativeServing.version }}
+      path: .
+      directory:
+        include: '{serving-crds.yaml,serving-core.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: knative-serving

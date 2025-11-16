@@ -10,10 +10,12 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/knative/eventing
-    targetRevision: knative-v{{ .Values.knativeEventing.version }}
-    path: config
+  sources:
+    - repoURL: https://github.com/knative/eventing
+      targetRevision: knative-v{{ .Values.knativeEventing.version }}
+      path: .
+      directory:
+        include: '{eventing-crds.yaml,eventing-core.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: knative-eventing
