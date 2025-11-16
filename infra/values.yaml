@@ -10,9 +10,9 @@ global:
 
 # Cilium CNI configuration
 # eBPF-based networking and security  
-# Deployed as ArgoCD Application
+# Managed by cluster-init (not cluster-serverless-infra)
 cilium:
-  enabled: true
+  enabled: false  # Managed separately by cluster-init
   version: "1.18.4"
   
   # Replace kube-proxy with eBPF (set to false for compatibility)
