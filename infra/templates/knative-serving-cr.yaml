@@ -17,6 +17,7 @@ spec:
   config:
     network:
       ingress-class: kourier.ingress.networking.knative.dev
+      domain-template: "{{.Name}}.{{.Domain}}"
     domain:
       benedict-aryo.com: ""
 {{- end }}
