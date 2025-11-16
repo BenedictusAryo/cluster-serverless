@@ -3,7 +3,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: jaeger-proxy
+  name: jaeger
   namespace: {{ .Values.jaeger.namespace }}
 spec:
   template:
@@ -45,15 +45,4 @@ data:
         }
       }
     }
----
-apiVersion: serving.knative.dev/v1beta1
-kind: DomainMapping
-metadata:
-  name: jaeger.benedict-aryo.com
-  namespace: {{ .Values.jaeger.namespace }}
-spec:
-  ref:
-    name: jaeger-proxy
-    kind: Service
-    apiVersion: serving.knative.dev/v1
 {{- end }}

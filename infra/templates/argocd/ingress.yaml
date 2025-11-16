@@ -19,7 +19,7 @@ spec:
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: argocd-proxy
+  name: argocd
   namespace: argocd
 spec:
   template:
@@ -62,15 +62,4 @@ data:
         }
       }
     }
----
-apiVersion: serving.knative.dev/v1beta1
-kind: DomainMapping
-metadata:
-  name: argocd.benedict-aryo.com
-  namespace: argocd
-spec:
-  ref:
-    name: argocd-proxy
-    kind: Service
-    apiVersion: serving.knative.dev/v1
 {{- end}}
