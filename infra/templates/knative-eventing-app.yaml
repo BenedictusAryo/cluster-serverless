@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/knative/eventing
     targetRevision: knative-v{{ .Values.knativeEventing.version }}
-    path: config/core
+    path: config
   destination:
     server: https://kubernetes.default.svc
     namespace: knative-eventing
@@ -21,4 +21,7 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - Replace=true
+    syncWaves:
+      - wave: 1
 {{- end }}
