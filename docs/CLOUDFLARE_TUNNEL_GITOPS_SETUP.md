@@ -107,9 +107,9 @@ Now you have:
 
 Continue to **Part 2** below to enable GitOps routing.
 
-**Method 2: Simplified GitOps with Token Mode + Single Wildcard Route (RECOMMENDED)**
+**Method 2: Simplified GitOps with Token Mode + Cilium Gateway (RECOMMENDED)**
 
-Actually, you don't NEED credentials.json for GitOps routing! 
+You still don't need `credentials.json`. We keep token mode, but the wildcard route now terminates on the Gateway API listener so that HTTPRoutes (in Git) decide where requests land.
 
 **The Simple Approach:**
 
@@ -117,60 +117,58 @@ In Cloudflare Dashboard, create just **ONE route**:
 - **Subdomain**: `*` (wildcard)
 - **Domain**: `benedict-aryo.com`
 - **Type**: `HTTPS`
-- **URL**: `https://kourier-gateway.kourier-system.svc.cluster.local:443`
-- **TLS Options**: Enable "No TLS Verify"
+- **URL**: `https://cloudflare-gateway.gateway-system.svc.cluster.local:443`
+- **TLS Options**: Enable "No TLS Verify" (gateway serves an internal cert)
 
 That's it! One route in the dashboard.
 
-**Then everything else is managed via Kubernetes Ingress resources in Git:**
+**Then everything else is managed via Gateway HTTPRoutes + Knative manifests in Git:**
 
 ```yaml
-# Example: Regular Kubernetes Ingress for ArgoCD
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# Example: Gateway HTTPRoute for ArgoCD (direct infrastructure access)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
-  name: argocd-ingress
+  name: argocd-route
   namespace: argocd
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
-  ingressClassName: kourier
-  tls:
-  - hosts:
-    - argocd.benedict-aryo.com
-    secretName: argocd-tls
+  parentRefs:
+  - name: cloudflare-gateway
+    namespace: gateway-system
+  hostnames:
+  - argocd.benedict-aryo.com
   rules:
-  - host: argocd.benedict-aryo.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: argocd-server
-            port:
-              number: 443
+  - backendRefs:
+    - name: argocd-server
+      namespace: argocd
+      port: 443
 ```
 
-Or for Knative Services (even simpler):
+Knative Services keep working the same way—they expose hostnames such as `my-app.default.benedict-aryo.com`. We add a pass-through HTTPRoute (once) that forwards those wildcard hostnames to the `kourier-gateway` Service, and Kourier+Knative continue doing revision-level routing:
+
 ```yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
-  name: my-app
-  namespace: default
+  name: knative-wildcard
+  namespace: gateway-system
 spec:
-  template:
-    spec:
-      containers:
-      - image: gcr.io/knative-samples/helloworld-go
+  parentRefs:
+  - name: cloudflare-gateway
+  hostnames:
+  - "*.benedict-aryo.com"
+  rules:
+  - backendRefs:
+    - name: kourier-gateway
+      namespace: kourier-system
+      port: 80
 ```
 
 **How it works:**
 
-1. **Cloudflare Tunnel**: Receives all `*.benedict-aryo.com` traffic, sends to Kourier
-2. **Kourier (Ingress Controller)**: Routes based on hostname using Ingress/Knative manifests
-3. **Your Git repo**: Contains all Ingress/Knative Service definitions
+1. **Cloudflare Tunnel**: Receives all `*.benedict-aryo.com` traffic, sends it to the Cilium `cloudflare-gateway`
+2. **Gateway API**: Evaluates HTTPRoutes from Git—either routes directly to the service (infra apps) or forwards to Kourier for Knative hostnames
+3. **Kourier + Knative**: Handle per-revision traffic splitting for serverless workloads
 
 ✅ **All routing logic in Git (GitOps)**
 ✅ **Only ONE static route in dashboard (never changes)**
@@ -183,25 +181,25 @@ This is actually the **best practice** approach!
 
 **Which mode should you choose?**
 
-| Feature | Token + Dashboard Routes | Token + Knative Ingress | Config + GitOps Routes |
-|---------|-------------------------|------------------------|------------------------|
+| Feature | Token + Dashboard Routes | Token + Gateway HTTPRoutes (Recommended) | Config + GitOps Routes |
+|---------|-------------------------|-------------------------------------------|------------------------|
 | Setup complexity | ✅ Simple | ✅ Simple | ⚠️ Complex |
-| Infrastructure routes | Dashboard | Dashboard | Git |
-| App routes | Dashboard | ✅ Git (Knative) | ✅ Git |
+| Infrastructure routes | Dashboard | ✅ Git (Gateway HTTPRoutes) | ✅ Git |
+| Knative routes | Dashboard | ✅ Git (pass-through to Kourier) | ✅ Git |
 | Need CLI? | ❌ No | ❌ No | ✅ Yes |
 | Need credentials.json? | ❌ No | ❌ No | ✅ Yes |
-| GitOps for apps? | ❌ No | ✅ Yes | ✅ Yes |
+| Cloudflare dashboard changes? | Frequent | One-time wildcard | None (managed via config file) |
+| Best fit | Quick tests | Ongoing GitOps clusters | Full Cloudflare-managed tunnel config |
 
 **Recommendation for your use case:**
 
-Use **Token + Knative Ingress** (Method 2):
-1. Keep token-based tunnel (simpler)
-2. Configure 3 infrastructure routes in dashboard (one-time setup)
-3. Deploy apps as Knative Services via Git
-4. Knative automatically creates routes like `my-app.default.benedict-aryo.com`
-5. ✅ Full GitOps for your applications!
+Use **Token + Gateway HTTPRoutes** (Method 2):
+1. Keep token-based tunnel (simpler) but point the wildcard route to `cloudflare-gateway`
+2. Manage every hostname—infra + Knative—via HTTPRoutes stored in Git
+3. Knative keeps creating URLs like `my-app.default.benedict-aryo.com`; the Gateway pass-through sends them to Kourier automatically
+4. ✅ Full GitOps control of ingress without touching Cloudflare after day one
 
-You get 90% of GitOps benefits without the complexity of config-based mode.
+You get 90% of the config-based benefits while staying in the simple token mode.
 
 ---
 
@@ -266,15 +264,9 @@ cloudflareTunnel:
   # These routes are now GitOps managed!
   ingress:
     - hostname: "*.benedict-aryo.com"
-      service: http://kourier-gateway.kourier-system.svc.cluster.local:80
-    
-    - hostname: argocd.benedict-aryo.com
-      service: https://argocd-server.argocd.svc.cluster.local:443
+      service: https://cloudflare-gateway.gateway-system.svc.cluster.local:443
       originRequest:
         noTLSVerify: true
-    
-    - hostname: jaeger.benedict-aryo.com
-      service: http://jaeger-query.observability.svc.cluster.local:16686
 ```
 
 ### Step 3: Commit and Push

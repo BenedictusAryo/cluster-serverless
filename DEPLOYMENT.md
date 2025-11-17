@@ -73,15 +73,13 @@ Expected components being deployed:
    - Choose **Cloudflared** connector
    - **Save the tunnel token!**
 
-2. **Configure Public Hostnames**:
+2. **Configure Public Hostname** (one-time wildcard):
    
-   Add these routes:
+  | Public Hostname | Service | Type | TLS |
+  |----------------|---------|------|-----|
+  | `*.benedict-aryo.com` | `cloudflare-gateway.gateway-system.svc.cluster.local:443` | HTTPS | Enable **No TLS Verify** |
    
-   | Public Hostname | Service | Type |
-   |----------------|---------|------|
-   | `*.benedict-aryo.com` | `kourier-gateway.kourier-system.svc.cluster.local:80` | HTTP |
-   | `argocd.benedict-aryo.com` | `argocd-server.argocd.svc.cluster.local:443` | HTTPS |
-   | `jaeger.benedict-aryo.com` | `jaeger-query.observability.svc.cluster.local:16686` | HTTP |
+  (All individual hostnames are now handled inside Kubernetes via Gateway API HTTPRoutes.)
 
 3. **Generate Sealed Secret**:
 
@@ -124,10 +122,8 @@ sudo dpkg -i cloudflared-linux-amd64.deb
 cloudflared tunnel login
 cloudflared tunnel create k0s-homelab-tunnel
 
-# Configure DNS
+# Configure DNS (single wildcard)
 cloudflared tunnel route dns k0s-homelab-tunnel "*.benedict-aryo.com"
-cloudflared tunnel route dns k0s-homelab-tunnel argocd.benedict-aryo.com
-cloudflared tunnel route dns k0s-homelab-tunnel jaeger.benedict-aryo.com
 
 # Get credentials and create sealed secret
 # Use the generate-sealed-secret.sh script

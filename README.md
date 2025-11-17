@@ -36,7 +36,7 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 - ✅ **Lightweight** (Kourier + Cilium vs Istio)
 - ✅ **Works behind CGNAT** (Cloudflare Tunnel)
 - ✅ **Automatic SSL/TLS** (via Cloudflare)
-- ✅ **True GitOps routing** (single wildcard + Kourier)
+- ✅ **True GitOps routing** (single wildcard + Cilium Gateway)
 - ✅ **Add apps via git push** (no manual dashboard updates)
 
 ## 🔀 Routing Architecture
@@ -44,38 +44,39 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 ### How Traffic Flows
 
 ```
-Internet → Cloudflare Edge → Tunnel (*.domain) → Kourier → Routes by hostname → Your Apps
+Internet → Cloudflare Edge → Tunnel (*.domain) → Cilium cloudflare-gateway →
+    ├─ HTTPRoute → Infrastructure Service
+    └─ HTTPRoute → Kourier Gateway → Knative Route → Your Serverless App
 ```
 
 **Cloudflare Dashboard** (ONE route, configured once):
-- `*.benedict-aryo.com` → `https://kourier-gateway.kourier-system.svc.cluster.local:443`
+- `*.benedict-aryo.com` → `https://cloudflare-gateway.gateway-system.svc.cluster.local:443`
 
 **Git** (ALL application routing):
-- Kubernetes Ingress resources for regular apps
-- Knative Service specs for serverless apps
+- Gateway API `HTTPRoute` resources for infrastructure apps
+- A single HTTPRoute that forwards Knative hostnames to `kourier-gateway`
+- Knative Service specs for serverless apps (Kourier still handles revision-level routing)
 
 **Example: Deploy ArgoCD Access via Git**
 
 ```yaml
-# infra/templates/argocd/ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# infra/templates/argocd/httproute.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
-  name: argocd
+  name: argocd-route
   namespace: argocd
 spec:
-  ingressClassName: kourier  # Uses Kourier as ingress controller
+  parentRefs:
+  - name: cloudflare-gateway
+    namespace: gateway-system
+  hostnames:
+  - argocd.benedict-aryo.com
   rules:
-  - host: argocd.benedict-aryo.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: argocd-server
-            port:
-              number: 443
+  - backendRefs:
+    - name: argocd-server
+      namespace: argocd
+      port: 443
 ```
 
 **Example: Deploy Serverless App**
@@ -97,8 +98,8 @@ Automatically accessible at: `hello.default.benedict-aryo.com`
 
 **Why This Approach?**
 - ✅ Single wildcard route in Cloudflare (never changes)
-- ✅ All routing logic in Git (version controlled)
-- ✅ Kourier acts as Layer 7 load balancer
+- ✅ All ingress logic (Gateway + HTTPRoutes) lives in Git
+- ✅ Cilium Gateway centralizes TLS/security while Kourier focuses on Knative data plane
 - ✅ Add new apps = git push (no dashboard needed)
 - ✅ Production-grade pattern
 

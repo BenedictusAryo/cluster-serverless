@@ -15,6 +15,10 @@ cilium:
   enabled: false  # Managed separately by cluster-init
   version: "1.18.4"
   
+  # Gateway API for ingress routing
+  gatewayAPI:
+    enabled: true
+  
   # Replace kube-proxy with eBPF (set to false for compatibility)
   kubeProxyReplacement: false
   

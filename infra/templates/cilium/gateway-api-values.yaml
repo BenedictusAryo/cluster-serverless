@@ -1,0 +1,25 @@
+{{- if .Values.cilium.gatewayAPI.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cilium-gateway-api-config
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  # Cilium Gateway API configuration
+  # This will be applied via Cilium CLI or Helm upgrade
+  values.yaml: |
+    gatewayAPI:
+      enabled: true
+    kubeProxyReplacement: strict
+    ipam:
+      mode: kubernetes
+    hubble:
+      enabled: true
+      relay:
+        enabled: true
+      ui:
+        enabled: true
+{{- end }}
