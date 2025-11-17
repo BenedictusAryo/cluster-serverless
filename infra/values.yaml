@@ -164,7 +164,7 @@ cloudflareTunnel:
   
   # Tunnel ID (required only for config-based mode)
   # Get from: Cloudflare dashboard → Tunnels → (your tunnel) → Overview → Tunnel ID
-  tunnelId: "a5f1d2be-698e-452f-883d-5f54dfc8d19d"
+  tunnelId: "3c2073fd-74ef-4c5d-9c9d-22d0068be234"
   
   # Replica count for HA
   replicas: 2
