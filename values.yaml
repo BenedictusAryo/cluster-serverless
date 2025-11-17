@@ -13,7 +13,7 @@ global:
 # NOTE: Cilium is installed directly via setup-argocd.sh, not via Helm
 cilium:
   enabled: false
-  version: "1.19.4"
+  version: "1.18.4"
   
   # Gateway API for ingress routing
   gatewayAPI:

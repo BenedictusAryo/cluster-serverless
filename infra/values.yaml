@@ -13,7 +13,7 @@ global:
 # Managed by cluster-init (not cluster-serverless-infra)
 cilium:
   enabled: false  # Managed separately by cluster-init
-  version: "1.19.4"
+  version: "1.18.4"
   
   # Gateway API for ingress routing
   gatewayAPI:
