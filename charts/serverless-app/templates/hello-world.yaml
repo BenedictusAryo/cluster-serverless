@@ -1,0 +1,17 @@
+{{- if .Values.helloWorld.enabled }}
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: {{ .Values.helloWorld.name }}
+  namespace: {{ .Values.helloWorld.namespace }}
+spec:
+  template:
+    spec:
+      containers:
+      - image: {{ .Values.helloWorld.image }}
+        ports:
+        - containerPort: {{ .Values.helloWorld.port }}
+        env:
+        - name: TARGET
+          value: {{ .Values.helloWorld.target | quote }}
+{{- end }}

@@ -6,22 +6,25 @@ Complete deployment guide for benedict-aryo.com serverless platform.
 
 ```mermaid
 graph LR
-    A[Install k0s] --> B[Setup ArgoCD]
-    B --> C[ArgoCD Syncs This Chart]
-    C --> D[Components Deploy]
-    D --> E[Configure Cloudflare]
-    E --> F[Deploy Services]
+    A[Install k0s] --> B[Bootstrap Infrastructure]
+    B --> C[Enable cluster-serverless]
+    C --> D[Sync cluster-init ArgoCD App]
+    D --> E[ArgoCD Deploys This Chart]
+    E --> F[Components Deploy]
+    F --> G[Configure Cloudflare]
+    G --> H[Deploy Services]
     
     style A fill:#3498db
     style C fill:#9b59b6
     style E fill:#f39c12
-    style F fill:#2ecc71
+    style H fill:#2ecc71
 ```
 
 ## 📋 Prerequisites Checklist
 
 - [ ] k0s cluster running (via k0s-cluster-bootstrap)
-- [ ] ArgoCD installed and accessible
+- [ ] cluster-init ArgoCD Application deployed and synced
+- [ ] ArgoCD UI accessible at argocd.benedict-aryo.com
 - [ ] Sealed Secrets controller running
 - [ ] Domain benedict-aryo.com in Cloudflare
 - [ ] kubectl configured with cluster access
@@ -30,18 +33,38 @@ graph LR
 
 ### Phase 1: Cluster Bootstrap (5-10 minutes)
 
-Already completed if you used [k0s-cluster-bootstrap](https://github.com/BenedictusAryo/k0s-cluster-bootstrap):
+Completed via [k0s-cluster-bootstrap](https://github.com/Benedictusaryo/k0s-cluster-bootstrap):
 
 ```bash
-# Controller node
-./scripts/install-k0s-controller.sh
-./scripts/setup-argocd.sh
-
-# Worker nodes (optional)
-./scripts/install-k0s-worker.sh
+# Run bootstrap script (installs infra, creates cluster-init ArgoCD app)
+cd k0s-cluster-bootstrap/cluster-init/scripts
+./cluster-entrypoint.sh
 ```
 
-### Phase 2: Verify ArgoCD Application (2-3 minutes)
+### Phase 2: Enable Serverless Deployment (1-2 minutes)
+
+```bash
+# Edit cluster-init values to enable this chart
+vim ../values.yaml
+
+# Find cluster-serverless application and change:
+# active: false → active: true
+
+# Commit and push
+git add values.yaml
+git commit -m "Enable cluster-serverless deployment"
+git push origin main
+```
+
+### Phase 3: Sync cluster-init ArgoCD Application (2-3 minutes)
+
+```bash
+# In ArgoCD UI: https://argocd.benedict-aryo.com
+# Find "cluster-init" application → Click "Sync"
+# This creates the cluster-serverless ArgoCD application
+```
+
+### Phase 4: Verify cluster-serverless ArgoCD Application (2-3 minutes)
 
 ```bash
 # Check if cluster-serverless app is registered
@@ -55,48 +78,21 @@ kubectl get pods -A -w
 ```
 
 Expected components being deployed:
-- Cilium (CNI networking)
 - Knative Serving + Eventing
 - Kourier (ingress)
 - OpenTelemetry Collector
 - Jaeger
 
-### Phase 3: Configure Cloudflare Tunnel (10-15 minutes)
+### Phase 3: Cloudflare Configuration (Already Done in k0s-cluster-bootstrap)
 
-#### Option A: Via Cloudflare Dashboard (Recommended)
+Cloudflare Tunnel and Gateway are configured in the `k0s-cluster-bootstrap` repository:
 
-1. **Create Tunnel**:
-   - Go to https://one.dash.cloudflare.com/
-   - Navigate to **Access** → **Tunnels**
-   - Click **Create a tunnel**
-   - Name: `k0s-homelab-tunnel`
-   - Choose **Cloudflared** connector
-   - **Save the tunnel token!**
+- **Cloudflare Gateway**: Cilium Gateway with wildcard HTTPRoute for `*.benedict-aryo.com`
+- **Cloudflare Tunnel**: Secure outbound connection to Cloudflare edge
+- **ArgoCD HTTPRoute**: Direct routing to ArgoCD server
+- **Jaeger HTTPRoute**: Direct routing to Jaeger UI (managed here)
 
-2. **Configure Public Hostname** (one-time wildcard):
-   
-  | Public Hostname | Service | Type | TLS |
-  |----------------|---------|------|-----|
-  | `*.benedict-aryo.com` | `cloudflare-gateway.gateway-system.svc.cluster.local:443` | HTTPS | Enable **No TLS Verify** |
-   
-  (All individual hostnames are now handled inside Kubernetes via Gateway API HTTPRoutes.)
-
-3. **Generate Sealed Secret**:
-
-   ```bash
-   cd cluster-serverless/scripts
-   chmod +x generate-sealed-secret.sh
-   ./generate-sealed-secret.sh
-   # Enter tunnel token when prompted
-   ```
-
-4. **Apply Sealed Secret**:
-
-   ```bash
-   # Commit to Git for GitOps
-   git add cloudflare-tunnel-sealed-secret.yaml
-   git commit -m "Add Cloudflare Tunnel credentials"
-   git push
+If not already configured, follow the Cloudflare setup in `k0s-cluster-bootstrap/README.md`.
    
    # Or apply directly
    kubectl apply -f cloudflare-tunnel-sealed-secret.yaml

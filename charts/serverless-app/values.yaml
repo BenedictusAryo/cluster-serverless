@@ -1,0 +1,11 @@
+# Default values for serverless-app subchart
+# Example serverless applications
+
+# Hello World application
+helloWorld:
+  enabled: true
+  name: hello-world
+  namespace: default
+  image: gcr.io/knative-samples/helloworld-go
+  target: "World"
+  port: 8080

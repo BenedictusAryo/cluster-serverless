@@ -1,12 +1,22 @@
-# cluster-serverless
+
+# cluster-serverless (Helm Modular)
 
 **GitOps-Powered Serverless Platform for VPS/Homelab** 🚀
 
-A production-ready, Helm-based serverless Kubernetes platform optimized for:
-- 🏠 **Homelab deployments** (works behind CGNAT!)
-- ☁️ **VPS hosting** (single or multi-node)
-- 🔀 **Hybrid setups** (VPS controller + homelab workers)
-- 💰 **Cost-effective** serverless at 70-90% savings vs managed platforms
+This repository is now a Helm chart repo focused on serverless infrastructure and workloads. All cluster-wide infrastructure (Cilium, Sealed Secrets, ArgoCD, Cloudflare Gateway, etc.) is managed by the `k0s-cluster-bootstrap` repo (see its `cluster-init` chart).
+
+## What This Provides
+
+A modular, GitOps-managed serverless stack deployed via ArgoCD, including:
+- **serverless-infra subchart**: Knative (Serving/Eventing), Kourier, Jaeger, OpenTelemetry, etc.
+- **serverless-app subchart**: Example hello world Knative app
+
+## Why This Structure?
+
+- **Separation of concerns**: Cluster-wide infra (Cilium, ArgoCD, Cloudflare Gateway/Tunnel) is managed by k0s-cluster-bootstrap, while serverless workloads are modular and upgradable.
+- **App-of-Apps GitOps**: This chart is deployed by the `cluster-init` ArgoCD Application from k0s-cluster-bootstrap (when `active: true`).
+- **Subcharts**: All serverless infra and workloads are managed as subcharts for clarity and extensibility.
+- **Selective deployment**: Can be enabled/disabled by changing `active` flag in `k0s-cluster-bootstrap/cluster-init/values.yaml`.
 
 ## 🎯 What This Provides
 
@@ -18,7 +28,6 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 - **🚪 Kourier** - Lightweight ingress (production-ready alternative to Istio)
 - **📊 OpenTelemetry** - Distributed tracing and metrics
 - **🔍 Jaeger** - Tracing UI and analysis
-- **🔒 Cloudflare Tunnel** - Secure external access (no exposed ports!)
 
 ## 🌟 Why This Stack?
 
@@ -53,14 +62,14 @@ Internet → Cloudflare Edge → Tunnel (*.domain) → Cilium cloudflare-gateway
 - `*.benedict-aryo.com` → `https://cloudflare-gateway.gateway-system.svc.cluster.local:443`
 
 **Git** (ALL application routing):
-- Gateway API `HTTPRoute` resources for infrastructure apps
-- A single HTTPRoute that forwards Knative hostnames to `kourier-gateway`
-- Knative Service specs for serverless apps (Kourier still handles revision-level routing)
+- Gateway API `HTTPRoute` resources for infrastructure apps (managed in k0s-cluster-bootstrap)
+- HTTPRoute for Jaeger (managed here)
+- Knative Service specs for serverless apps (Kourier handles routing)
 
-**Example: Deploy ArgoCD Access via Git**
+**Example: ArgoCD Access (managed in k0s-cluster-bootstrap)**
 
 ```yaml
-# infra/templates/argocd/httproute.yaml
+# k0s-cluster-bootstrap/cluster-init/templates/argocd/httproute.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -77,6 +86,28 @@ spec:
     - name: argocd-server
       namespace: argocd
       port: 443
+```
+
+**Example: Jaeger Access (managed here)**
+
+```yaml
+# charts/serverless-infra/templates/jaeger/httproute.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: jaeger-route
+  namespace: observability
+spec:
+  parentRefs:
+  - name: cloudflare-gateway
+    namespace: gateway-system
+  hostnames:
+  - jaeger.benedict-aryo.com
+  rules:
+  - backendRefs:
+    - name: jaeger-query
+      namespace: observability
+      port: 16686
 ```
 
 **Example: Deploy Serverless App**
