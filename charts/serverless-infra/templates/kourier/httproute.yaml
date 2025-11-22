@@ -1,0 +1,27 @@
+{{- if .Values.kourier.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: wildcard-knative-route
+  namespace: kourier-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    # Track this resource in the cluster-serverless chart
+    argocd.argoproj.io/tracking-id: cluster-serverless:gateway.networking.k8s.io/HTTPRoute:kourier-system/wildcard-knative-route
+spec:
+  parentRefs:
+  - name: cloudflare-gateway
+    namespace: gateway-system
+  hostnames:
+  - "*.benedict-aryo.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: kourier
+      port: 80
+      namespace: kourier-system
+{{- end }}
