@@ -24,4 +24,23 @@ spec:
     - name: kourier
       port: 80
       namespace: knative-serving  # Kourier service is created in knative-serving namespace by Knative operator
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: kourier-reference-grant
+  namespace: knative-serving
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    # Track this resource in the cluster-serverless chart
+    argocd.argoproj.io/tracking-id: cluster-serverless:gateway.networking.k8s.io/ReferenceGrant:knative-serving/kourier-reference-grant
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: kourier-system
+  to:
+  - group: ""
+    kind: Service
+    name: kourier
 {{- end }}
