@@ -23,5 +23,5 @@ spec:
     backendRefs:
     - name: kourier
       port: 80
-      namespace: kourier-system
+      namespace: knative-serving  # Kourier service is created in knative-serving namespace by Knative operator
 {{- end }}
