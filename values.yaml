@@ -16,6 +16,9 @@ gateway:
 # Subchart configurations
 serverless-infra:
   enabled: true
+  rootRoute:
+    enabled: true  # Enable root domain routing
+    primaryService: hello-world  # Set hello-world as the primary service for root domain
 
 serverless-app:
   enabled: true

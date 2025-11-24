@@ -218,3 +218,11 @@ cloudflareTunnel:
 argocd:
   ingress:
     enabled: false  # Moved to k0s-cluster-bootstrap/cluster-init
+
+# Root Domain Route Configuration
+# Configure a primary service to respond to the root domain (benedict-aryo.com)
+rootRoute:
+  enabled: false  # Set to true to enable root domain routing
+  namespace: default  # Namespace where to create the HTTPRoute resource
+  primaryService: hello-world  # Name of the primary service to route to
+  serviceNamespace: default  # Namespace of the primary service
