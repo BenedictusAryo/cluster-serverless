@@ -15,6 +15,7 @@ spec:
     namespace: gateway-system
   hostnames:
   - benedict-aryo.com  # Root domain
+  - www.benedict-aryo.com  # WWW subdomain
   rules:
   - matches:
     - path:
