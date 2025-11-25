@@ -18,7 +18,7 @@ serverless-infra:
   enabled: true
   rootRoute:
     enabled: true  # Enable root domain routing
-    primaryService: hello-world  # The Knative service to map to root domain
+    primaryService: home  # The Knative service to map to root domain
 
 serverless-app:
   enabled: true

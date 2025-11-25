@@ -11,7 +11,7 @@ metadata:
     argocd.argoproj.io/tracking-id: cluster-serverless:serving.knative.dev/DomainMapping:default/benedict-aryo.com
 spec:
   ref:
-    name: {{ .Values.rootRoute.primaryService | default "hello-world" }}
+    name: {{ .Values.rootRoute.primaryService | default "home" }}
     kind: Service
     apiVersion: serving.knative.dev/v1
     namespace: default
