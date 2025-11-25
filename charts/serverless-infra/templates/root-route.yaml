@@ -1,21 +1,5 @@
 {{- if .Values.rootRoute.enabled }}
 ---
-apiVersion: serving.knative.dev/v1beta1
-kind: DomainMapping
-metadata:
-  name: benedict-aryo.com
-  namespace: default
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    # Track this resource in the cluster-serverless chart
-    argocd.argoproj.io/tracking-id: cluster-serverless:serving.knative.dev/DomainMapping:default/benedict-aryo.com
-spec:
-  ref:
-    name: {{ .Values.rootRoute.primaryService | default "root-redirect" }}
-    kind: Service
-    apiVersion: serving.knative.dev/v1
-    namespace: default
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -37,19 +21,19 @@ spec:
         type: PathPrefix
         value: /
     backendRefs:
-    - name: kourier
+    - name: root-redirect  # Directly to the redirect service bypassing Knative domain system
       port: 80
-      namespace: knative-serving  # Route through Kourier like wildcard route
+      namespace: default
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
   name: root-domain-reference-grant
-  namespace: knative-serving
+  namespace: default
   annotations:
     argocd.argoproj.io/sync-wave: "3"
     # Track this resource in the cluster-serverless chart
-    argocd.argoproj.io/tracking-id: cluster-serverless:gateway.networking.k8s.io/ReferenceGrant:knative-serving/root-domain-reference-grant
+    argocd.argoproj.io/tracking-id: cluster-serverless:gateway.networking.k8s.io/ReferenceGrant:default/root-domain-reference-grant
 spec:
   from:
   - group: gateway.networking.k8s.io
@@ -58,5 +42,5 @@ spec:
   to:
   - group: ""
     kind: Service
-    name: kourier
+    name: root-redirect
 {{- end }}
