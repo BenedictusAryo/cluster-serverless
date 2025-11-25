@@ -1,0 +1,11 @@
+apiVersion: serving.knative.dev/v1alpha1
+kind: DomainMapping
+metadata:
+  name: benedict-aryo.com
+  namespace: default
+spec:
+  ref:
+    name: hello-world  # The Knative service to route to
+    kind: Service
+    apiVersion: serving.knative.dev/v1
+    namespace: default

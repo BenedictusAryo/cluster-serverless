@@ -18,8 +18,7 @@ serverless-infra:
   enabled: true
   rootRoute:
     enabled: true  # Enable root domain routing
-    # All traffic now routes through Kourier, which handles Knative routing
-    # The primary service will be determined by Knative configuration
+    primaryService: hello-world  # The Knative service to map to root domain
 
 serverless-app:
   enabled: true
