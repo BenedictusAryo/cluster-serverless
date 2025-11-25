@@ -18,7 +18,7 @@ serverless-infra:
   enabled: true
   rootRoute:
     enabled: true  # Enable root domain routing
-    primaryService: root-redirect  # The redirect service to map to root domain
+    # Root domain now routes directly to root-redirect service via HTTPRoute
 
 serverless-app:
   enabled: true
