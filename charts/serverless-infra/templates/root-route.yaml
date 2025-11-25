@@ -1,21 +1,5 @@
 {{- if .Values.rootRoute.enabled }}
 ---
-apiVersion: serving.knative.dev/v1beta1
-kind: DomainMapping
-metadata:
-  name: benedict-aryo.com
-  namespace: default
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    # Track this resource in the cluster-serverless chart
-    argocd.argoproj.io/tracking-id: cluster-serverless:serving.knative.dev/DomainMapping:default/benedict-aryo.com
-spec:
-  ref:
-    name: {{ .Values.rootRoute.primaryService | default "home" }}
-    kind: Service
-    apiVersion: serving.knative.dev/v1
-    namespace: default
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
