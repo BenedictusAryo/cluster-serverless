@@ -21,19 +21,19 @@ spec:
         type: PathPrefix
         value: /
     backendRefs:
-    - name: {{ .Values.rootRoute.primaryService }}
+    - name: kourier
       port: 80
-      namespace: {{ .Values.rootRoute.serviceNamespace | default "default" }}
+      namespace: knative-serving  # Route through Kourier like wildcard route
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
   name: root-domain-reference-grant
-  namespace: {{ .Values.rootRoute.serviceNamespace | default "default" }}
+  namespace: knative-serving
   annotations:
     argocd.argoproj.io/sync-wave: "3"
     # Track this resource in the cluster-serverless chart
-    argocd.argoproj.io/tracking-id: cluster-serverless:gateway.networking.k8s.io/ReferenceGrant:{{ .Values.rootRoute.serviceNamespace | default "default" }}/root-domain-reference-grant
+    argocd.argoproj.io/tracking-id: cluster-serverless:gateway.networking.k8s.io/ReferenceGrant:knative-serving/root-domain-reference-grant
 spec:
   from:
   - group: gateway.networking.k8s.io
@@ -42,5 +42,5 @@ spec:
   to:
   - group: ""
     kind: Service
-    name: {{ .Values.rootRoute.primaryService }}
+    name: kourier
 {{- end }}
