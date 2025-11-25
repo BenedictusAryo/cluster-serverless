@@ -18,7 +18,7 @@ serverless-infra:
   enabled: true
   rootRoute:
     enabled: true  # Enable root domain routing
-    primaryService: test-app  # Set test-app as the primary service for root domain
+    primaryService: hello-world  # Set test-app as the primary service for root domain
 
 serverless-app:
   enabled: true
