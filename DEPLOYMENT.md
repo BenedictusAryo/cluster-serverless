@@ -13,7 +13,7 @@ graph LR
     E --> F[Components Deploy]
     F --> G[Configure Cloudflare]
     G --> H[Deploy Services]
-    
+
     style A fill:#3498db
     style C fill:#9b59b6
     style E fill:#f39c12
@@ -79,11 +79,12 @@ kubectl get pods -A -w
 
 Expected components being deployed:
 - Knative Serving + Eventing
-- Kourier (ingress)
+- Istio Gateway (ingress)
+- cert-manager (certificate management)
 - OpenTelemetry Collector
 - Jaeger
 
-### Phase 3: Cloudflare Configuration (Already Done in k0s-cluster-bootstrap)
+### Phase 5: Cloudflare Configuration (Already Done in k0s-cluster-bootstrap)
 
 Cloudflare Tunnel and Gateway are configured in the `k0s-cluster-bootstrap` repository:
 
@@ -93,39 +94,8 @@ Cloudflare Tunnel and Gateway are configured in the `k0s-cluster-bootstrap` repo
 - **Jaeger HTTPRoute**: Direct routing to Jaeger UI (managed here)
 
 If not already configured, follow the Cloudflare setup in `k0s-cluster-bootstrap/README.md`.
-   
-   # Or apply directly
-   kubectl apply -f cloudflare-tunnel-sealed-secret.yaml
-   ```
 
-5. **Enable in values.yaml**:
-
-   ```yaml
-   cloudflareTunnel:
-     enabled: true  # Change from false to true
-   ```
-
-   Commit and push, ArgoCD will sync automatically.
-
-#### Option B: Via CLI (Advanced)
-
-```bash
-# Install cloudflared
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-sudo dpkg -i cloudflared-linux-amd64.deb
-
-# Login and create tunnel
-cloudflared tunnel login
-cloudflared tunnel create k0s-homelab-tunnel
-
-# Configure DNS (single wildcard)
-cloudflared tunnel route dns k0s-homelab-tunnel "*.benedict-aryo.com"
-
-# Get credentials and create sealed secret
-# Use the generate-sealed-secret.sh script
-```
-
-### Phase 4: Verify Deployment (5 minutes)
+### Phase 6: Verify Deployment (5 minutes)
 
 ```bash
 # Check all pods are running
@@ -135,18 +105,17 @@ kubectl get pods -A
 kubectl get pods -n knative-serving
 kubectl get pods -n knative-eventing
 
-# Check Kourier gateway
-kubectl get svc -n kourier-system
+# Check Istio gateway
+kubectl get pods -n istio-system
 
-# Verify Cloudflare Tunnel (if enabled)
-kubectl get pods -n cloudflare-tunnel
-kubectl logs -n cloudflare-tunnel deployment/cloudflared
+# Check cert-manager
+kubectl get pods -n cert-manager
 
 # Check OpenTelemetry and Jaeger
 kubectl get pods -n observability
 ```
 
-### Phase 5: Deploy Test Service (5 minutes)
+### Phase 7: Deploy Test Service (5 minutes)
 
 Create your first Knative service:
 
@@ -193,7 +162,8 @@ Hello Benedict Aryo's Serverless Platform!
 - [ ] All ArgoCD applications are "Synced" and "Healthy"
 - [ ] Cilium pods running (check with `cilium status`)
 - [ ] Knative Serving + Eventing controllers ready
-- [ ] Kourier gateway service exists
+- [ ] Istio Gateway service exists
+- [ ] cert-manager is issuing certificates
 - [ ] Cloudflare Tunnel connected (check dashboard)
 - [ ] Test service accessible via benedict-aryo.com
 - [ ] ArgoCD UI accessible at argocd.benedict-aryo.com
@@ -231,21 +201,20 @@ kubectl patch application cluster-serverless -n argocd \
 kubectl logs -n argocd deployment/argocd-application-controller
 ```
 
-### Cloudflare Tunnel Not Connecting
+### cert-manager Certificate Issues
 
 ```bash
-# Check tunnel pods
-kubectl get pods -n cloudflare-tunnel
+# Check cert-manager pods
+kubectl get pods -n cert-manager
 
-# View logs
-kubectl logs -n cloudflare-tunnel deployment/cloudflared -f
+# Check certificate status
+kubectl get certificates -A
 
-# Verify secret exists
-kubectl get secret cloudflare-tunnel-secret -n cloudflare-tunnel
+# Check cluster issuers
+kubectl get clusterissuers
 
-# Test connectivity
-kubectl exec -it -n cloudflare-tunnel deployment/cloudflared -- \
-  cloudflared tunnel info
+# View cert-manager logs
+kubectl logs -n cert-manager deployment/cert-manager -f
 ```
 
 ### Knative Service Not Accessible
@@ -257,14 +226,14 @@ kubectl get ksvc -A
 # Describe the service
 kubectl describe ksvc hello-world -n default
 
-# Check Kourier gateway
-kubectl get svc -n kourier-system
-kubectl logs -n kourier-system deployment/3scale-kourier-gateway
+# Check Istio gateway
+kubectl get pods -n istio-system
+kubectl logs -n istio-system deployment/istiod
 
 # Test internal connectivity
 kubectl run test --rm -it --image=curlimages/curl -- \
   curl -H "Host: hello-world.default.benedict-aryo.com" \
-  http://kourier-gateway.kourier-system.svc.cluster.local
+  http://istio-ingressgateway.istio-system.svc.cluster.local
 ```
 
 ## 📊 Monitoring
@@ -298,8 +267,8 @@ Edit `values.yaml`:
 knativeServing:
   version: "1.21.0"  # Update version
 
-cilium:
-  version: "1.17.0"  # Update version
+istio:
+  version: "1.23.0"  # Update version
 ```
 
 Commit and push - ArgoCD will automatically sync.
@@ -307,12 +276,13 @@ Commit and push - ArgoCD will automatically sync.
 ### Scale Replicas
 
 ```yaml
-kourier:
-  gateway:
+istio:
+  ingress:
     replicas: 3  # Increase for HA
 
-cloudflareTunnel:
-  replicas: 3  # Increase tunnel replicas
+knativeServing:
+  controller:
+    replicas: 2  # Increase for HA
 ```
 
 ## 🎓 Next Steps
@@ -326,7 +296,8 @@ cloudflareTunnel:
 ## 📚 Resources
 
 - [Knative Documentation](https://knative.dev/docs/)
-- [Cilium Documentation](https://docs.cilium.io/)
+- [Istio Documentation](https://istio.io/docs/)
+- [cert-manager Documentation](https://cert-manager.io/docs/)
 - [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
 - [Cloudflare Tunnel Docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 - [TSD Document](../TSD.md) - Technical Specification
