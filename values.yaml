@@ -8,9 +8,17 @@ global:
   domain: benedict-aryo.com
   environment: production
 
+# Gateway configuration (to prevent template errors)
+gateway:
+  tls:
+    enabled: false  # Disabled by default
+
 # Subchart configurations
 serverless-infra:
   enabled: true
+  rootRoute:
+    enabled: true  # Enable root domain routing
+    # Root domain now routes directly to root-redirect service via HTTPRoute
 
 serverless-app:
   enabled: true

@@ -57,7 +57,7 @@ sealedSecrets:
 # Serverless request-driven workloads
 knativeServing:
   enabled: true
-  version: "1.20.0"
+  version: "1.18.0"  # Compatible with Knative Operator v1.18.0
   namespace: knative-serving
 
   # Domain configuration
@@ -86,7 +86,7 @@ knativeServing:
 # Event-driven architecture
 knativeEventing:
   enabled: true
-  version: "1.20.0"
+  version: "1.18.0"  # Compatible with Knative Operator v1.18.0
   namespace: knative-eventing
 
   # Default broker configuration
@@ -102,7 +102,7 @@ knativeEventing:
 # Lightweight alternative to Istio
 kourier:
   enabled: true
-  version: "1.20.0"
+  version: "1.18.0"  # Compatible with Knative Serving v1.18.0
   namespace: kourier-system
 
   # Service configuration
@@ -218,3 +218,11 @@ cloudflareTunnel:
 argocd:
   ingress:
     enabled: false  # Moved to k0s-cluster-bootstrap/cluster-init
+
+# Root Domain Route Configuration
+# Configure a primary service to respond to the root domain (benedict-aryo.com)
+rootRoute:
+  enabled: false  # Set to true to enable root domain routing
+  namespace: default  # Namespace where to create the HTTPRoute resource
+  primaryService: hello-world  # Name of the primary service to route to
+  serviceNamespace: default  # Namespace of the primary service
