@@ -397,3 +397,55 @@ See [LICENSE](LICENSE) file for details.
 For issues and questions:
 - GitHub Issues: https://github.com/BenedictusAryo/cluster-serverless/issues
 - Documentation: https://github.com/BenedictusAryo/cluster-serverless
+
+
+## 🏗️ Project Structure
+
+```
+cluster-serverless/
+├── Chart.yaml                # Root Helm chart with subchart dependencies
+├── values.yaml               # Global config + subchart enables
+├── apps/                     # Application configurations
+│   └── templates/            # Application manifests (ArgoCD Applications)
+├── app/                      # Individual Knative applications (like aiplatform-dev)
+│   ├── hello-knative/        # Example Knative app
+│   │   ├── values.yaml       # App-specific configuration
+│   │   └── application.env   # Non-sensitive environment variables
+│   └── echo-server/          # Another example app
+│       ├── values.yaml       # App-specific configuration
+│       └── application.env   # Non-sensitive environment variables
+├── charts/                   # Subcharts
+│   ├── serverless-infra/     # Serverless infrastructure subchart
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml       # Knative, Istio, Jaeger, OpenTelemetry config
+│   │   └── templates/        # Infrastructure components + Jaeger HTTPRoute
+│   └── serverless-app/       # Serverless applications subchart
+│       ├── Chart.yaml
+│       ├── values.yaml       # App configurations
+│       └── templates/        # Example hello-world Knative Service
+├── templates/                # Global templates
+│   ├── _helpers.tpl
+│   └── knativeservice.yaml   # Knative Service template for apps
+└── docs/                     # Documentation
+```
+
+## 📁 App Management Pattern
+
+This repository follows the same app management pattern as aiplatform-dev:
+
+### App Structure
+- **app/** directory contains individual Knative applications 
+- Each app has its own `values.yaml` for configuration
+- Each app has its own `application.env` for non-sensitive environment variables
+- Template-based deployments using the `knativeservice.yaml` template
+
+### Environment Variables Management
+- **Non-sensitive variables**: Stored in `application.env` and referenced in `values.yaml`
+- **Sensitive data**: Managed separately through Kubernetes Secrets/SealedSecrets
+- **Configuration separation**: Environment-specific settings kept in Git in a secure manner
+
+### GitOps Integration
+- Each app can be managed as a separate ArgoCD Application
+- Supports the ApplicationSet pattern for automatic app discovery
+- Self-healing through GitOps reconciliation
+
