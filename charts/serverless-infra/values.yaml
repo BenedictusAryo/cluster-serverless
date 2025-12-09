@@ -1,5 +1,5 @@
 # Default values for serverless-infra subchart
-# Infrastructure components: Knative, Kourier, Jaeger, OpenTelemetry, etc.
+# Infrastructure components: Knative, Istio, Jaeger, OpenTelemetry, etc.
 
 # Global configuration (inherited from parent)
 global:
@@ -63,8 +63,8 @@ knativeServing:
   # Domain configuration
   domain: benedict-aryo.com
 
-  # Ingress class (Kourier)
-  ingressClass: kourier.ingress.networking.knative.dev
+  # Ingress class (Istio)
+  ingressClass: istio.ingress.networking.knative.dev
 
   # Autoscaling defaults
   autoscaling:
@@ -98,28 +98,28 @@ knativeEventing:
   channel:
     type: InMemoryChannel
 
-# Kourier Ingress configuration
+# Kourier Ingress configuration (deprecated - using Istio)
 # Lightweight alternative to Istio
-kourier:
-  enabled: true
-  version: "1.18.0"  # Compatible with Knative Serving v1.18.0
-  namespace: kourier-system
-
-  # Service configuration
-  service:
-    type: ClusterIP  # Internal only, exposed via Cloudflare Tunnel
-    annotations: {}
-
-  # Gateway resources
-  gateway:
-    replicas: 2  # HA setup
-    resources:
-      requests:
-        cpu: 100m
-        memory: 64Mi
-      limits:
-        cpu: 500m
-        memory: 128Mi
+# kourier:
+#   enabled: false
+#   version: "1.18.0"  # Compatible with Knative Serving v1.18.0
+#   namespace: kourier-system
+#
+#   # Service configuration
+#   service:
+#     type: ClusterIP  # Internal only, exposed via Cloudflare Tunnel
+#     annotations: {}
+#
+#   # Gateway resources
+#   gateway:
+#     replicas: 2  # HA setup
+#     resources:
+#       requests:
+#         cpu: 100m
+#         memory: 64Mi
+#       limits:
+#         cpu: 500m
+#         memory: 128Mi
 
 # OpenTelemetry configuration
 # Metrics and trace collection
@@ -214,7 +214,7 @@ cloudflareTunnel:
   enabled: false  # Moved to k0s-cluster-bootstrap/cluster-init
 
 # ArgoCD Ingress Configuration
-# Provides external access to ArgoCD UI via Cloudflare Tunnel + Kourier
+# Provides external access to ArgoCD UI via Cloudflare Tunnel + Istio
 argocd:
   ingress:
     enabled: false  # Moved to k0s-cluster-bootstrap/cluster-init

@@ -8,7 +8,7 @@ This repository is now a Helm chart repo focused on serverless infrastructure an
 ## What This Provides
 
 A modular, GitOps-managed serverless stack deployed via ArgoCD, including:
-- **serverless-infra subchart**: Knative (Serving/Eventing), Kourier, Jaeger, OpenTelemetry, etc.
+- **serverless-infra subchart**: Knative (Serving/Eventing), Istio, Jaeger, OpenTelemetry, etc.
 - **serverless-app subchart**: Example hello world Knative app
 
 ## Why This Structure?
@@ -25,7 +25,7 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 - **🕸️ Cilium** - eBPF-based networking (50-70% lighter than Istio)
 - **🔄 Knative Serving** - Auto-scaling HTTP services (scale-to-zero)
 - **⚡ Knative Eventing** - Event-driven architecture
-- **🚪 Kourier** - Lightweight ingress (production-ready alternative to Istio)
+- **🚪 Istio** - Service mesh ingress (production-ready traffic management)
 - **📊 OpenTelemetry** - Distributed tracing and metrics
 - **🔍 Jaeger** - Tracing UI and analysis
 
@@ -42,7 +42,7 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 ### Our Solution
 - ✅ **$15-120/month** (70-90% cost savings)
 - ✅ **Portable** (runs anywhere Kubernetes runs)
-- ✅ **Lightweight** (Kourier + Cilium vs Istio)
+- ✅ **Balanced** (Cilium + Istio for comprehensive traffic management)
 - ✅ **Works behind CGNAT** (Cloudflare Tunnel)
 - ✅ **Automatic SSL/TLS** (via Cloudflare)
 - ✅ **True GitOps routing** (single wildcard + Cilium Gateway)
@@ -55,7 +55,7 @@ A complete serverless stack deployed via GitOps (ArgoCD) including:
 ```
 Internet → Cloudflare Edge → Tunnel (*.domain) → Cilium cloudflare-gateway →
     ├─ HTTPRoute → Infrastructure Service
-    └─ HTTPRoute → Kourier Gateway → Knative Route → Your Serverless App
+    └─ HTTPRoute → Istio Gateway → Knative Route → Your Serverless App
 ```
 
 **Cloudflare Dashboard** (ONE route, configured once):
@@ -64,7 +64,7 @@ Internet → Cloudflare Edge → Tunnel (*.domain) → Cilium cloudflare-gateway
 **Git** (ALL application routing):
 - Gateway API `HTTPRoute` resources for infrastructure apps (managed in k0s-cluster-bootstrap)
 - HTTPRoute for Jaeger (managed here)
-- Knative Service specs for serverless apps (Kourier handles routing)
+- Knative Service specs for serverless apps (Istio handles routing)
 
 **Example: ArgoCD Access (managed in k0s-cluster-bootstrap)**
 
@@ -130,7 +130,7 @@ Automatically accessible at: `hello.default.benedict-aryo.com`
 **Why This Approach?**
 - ✅ Single wildcard route in Cloudflare (never changes)
 - ✅ All ingress logic (Gateway + HTTPRoutes) lives in Git
-- ✅ Cilium Gateway centralizes TLS/security while Kourier focuses on Knative data plane
+- ✅ Cilium Gateway centralizes TLS/security while Istio focuses on Knative data plane traffic management
 - ✅ Add new apps = git push (no dashboard needed)
 - ✅ Production-grade pattern
 
@@ -160,7 +160,7 @@ This chart is automatically deployed via ArgoCD when you run the [k0s-cluster-bo
 
 ArgoCD will:
 1. Deploy this Helm chart
-2. Install all components (Cilium, Knative, Kourier, etc.)
+2. Install all components (Cilium, Knative, Istio, etc.)
 3. Configure networking and observability
 4. Set up automatic sync and self-healing
 
@@ -246,12 +246,12 @@ helm install my-serverless . -f custom-values.yaml
 | `knativeEventing.version` | Knative Eventing version | `1.11.0` |
 | `knativeEventing.broker.type` | Broker type | `MTChannelBasedBroker` |
 
-### Kourier Configuration
+### Istio Configuration
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `kourier.enabled` | Enable Kourier ingress | `true` |
-| `kourier.service.type` | Service type | `LoadBalancer` |
+| `istio.enabled` | Enable Istio service mesh | `true` |
+| `istio.ingress.gateway` | Enable Istio ingress gateway | `true` |
 
 ### OpenTelemetry Configuration
 
@@ -337,8 +337,8 @@ helm uninstall my-serverless
          └──────────┬──────────┘
                     │
          ┌──────────▼──────────┐
-         │      Kourier        │
-         │   (Ingress/LB)      │
+         │      Istio          │
+         │   (Service Mesh)    │
          └──────────┬──────────┘
                     │
          ┌──────────▼──────────┐
@@ -381,7 +381,7 @@ kubectl logs -n observability -l app.kubernetes.io/name=jaeger
 ### Common Issues
 
 1. **Pods not starting**: Check resource availability and node capacity
-2. **Services not accessible**: Verify Kourier service type and external IP
+2. **Services not accessible**: Verify Istio gateway and route configuration
 3. **Tracing not working**: Ensure OpenTelemetry is configured to export to Jaeger
 
 ## Contributing
