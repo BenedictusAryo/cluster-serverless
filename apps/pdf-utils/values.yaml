@@ -7,7 +7,7 @@ spec:
   template:
     spec:
       containers:
-        - image: ghcr.io/benedictusaryo/pdf-utils:latest
+        - image: ghcr.io/stirling-tools/stirling-pdf:latest
           ports:
             - containerPort: 8080
 ---
