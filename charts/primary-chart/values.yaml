@@ -1,0 +1,17 @@
+repoURL: https://github.com/BenedictusAryo/cluster-serverless.git
+targetRevision: HEAD
+argocdNamespace: argocd
+appsNamespace: apps
+infraNamespace: infra
+destinationServer: https://kubernetes.default.svc
+syncPolicy:
+  automated: true
+  prune: true
+  selfHeal: true
+applications:
+  apps:
+    path: apps
+    project: default
+  infra:
+    path: infra-apps
+    project: default
