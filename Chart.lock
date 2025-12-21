@@ -1,9 +1,0 @@
-dependencies:
-- name: serverless-infra
-  repository: ""
-  version: 1.0.0
-- name: serverless-app
-  repository: ""
-  version: 1.0.0
-digest: sha256:a480b661fdb715a17b195548101052943e181bd2618102ec3f138654c77e69c2
-generated: "2025-11-18T08:52:56.597455+07:00"

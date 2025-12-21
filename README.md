@@ -1,451 +1,467 @@
+# Knative GitOps Helm Monorepo
 
-# cluster-serverless (Helm Modular)
+## Overview
 
-**GitOps-Powered Serverless Platform for VPS/Homelab** 🚀
+This repository is a **GitOps‑oriented Helm monorepo** designed to run on a **single‑node Kubernetes cluster (k0s)** hosted on a VPS. It focuses on **serverless application deployment using Knative**, **declarative infrastructure management**, and a **clean App‑of‑Apps pattern with Argo CD**.
 
-This repository is now a Helm chart repo focused on serverless infrastructure and workloads. All cluster-wide infrastructure (Cilium, Sealed Secrets, ArgoCD, Cloudflare Gateway, etc.) is managed by the `k0s-cluster-bootstrap` repo (see its `cluster-init` chart).
+The repository intentionally separates **application concerns** from **platform/infrastructure concerns**, while still allowing everything to be bootstrapped from a single entry point.
 
-## What This Provides
+This repo is meant to be:
 
-A modular, GitOps-managed serverless stack deployed via ArgoCD, including:
-- **serverless-infra subchart**: Knative (Serving/Eventing), Istio, Jaeger, OpenTelemetry, etc.
-- **serverless-app subchart**: Example hello world Knative app
+* A **learning platform** for Kubernetes, Knative, and GitOps
+* A **personal platform** for blogs, utilities, and experiments
+* A **production‑like but lightweight** setup suitable for 1 VPS
 
-## Why This Structure?
+---
 
-- **Separation of concerns**: Cluster-wide infra (Cilium, ArgoCD, Cloudflare Gateway/Tunnel) is managed by k0s-cluster-bootstrap, while serverless workloads are modular and upgradable.
-- **App-of-Apps GitOps**: This chart is deployed by the `cluster-init` ArgoCD Application from k0s-cluster-bootstrap (when `active: true`).
-- **Subcharts**: All serverless infra and workloads are managed as subcharts for clarity and extensibility.
-- **Selective deployment**: Can be enabled/disabled by changing `active` flag in `k0s-cluster-bootstrap/cluster-init/values.yaml`.
+## Goals
 
-## 🎯 What This Provides
+The primary goals of this repository are:
 
-A complete serverless stack deployed via GitOps (ArgoCD) including:
+1. **Serverless-first deployment**
 
-- **🕸️ Cilium** - eBPF-based networking (50-70% lighter than Istio)
-- **🔄 Knative Serving** - Auto-scaling HTTP services (scale-to-zero)
-- **⚡ Knative Eventing** - Event-driven architecture
-- **🚪 Istio** - Service mesh ingress (production-ready traffic management)
-- **📊 OpenTelemetry** - Distributed tracing and metrics
-- **🔍 Jaeger** - Tracing UI and analysis
+   * Applications are deployed as Knative Services
+   * Scale to zero when idle
+   * Simple HTTP-based workloads (blog, utilities, tools)
 
-## 🌟 Why This Stack?
+2. **GitOps as the source of truth**
 
-### Traditional Serverless Challenges
-- ❌ Expensive ($200-400/month for managed K8s)
-- ❌ Vendor lock-in (AWS Lambda, Cloud Run, etc.)
-- ❌ Heavy resource requirements (Istio service mesh)
-- ❌ Can't run on homelab behind CGNAT
-- ❌ Complex networking and SSL setup
-- ❌ Manual route configuration in dashboards
+   * Git is the single source of truth
+   * All changes are declarative
+   * Argo CD continuously reconciles desired state
 
-### Our Solution
-- ✅ **$15-120/month** (70-90% cost savings)
-- ✅ **Portable** (runs anywhere Kubernetes runs)
-- ✅ **Balanced** (Cilium + Istio for comprehensive traffic management)
-- ✅ **Works behind CGNAT** (Cloudflare Tunnel)
-- ✅ **Automatic SSL/TLS** (via Cloudflare)
-- ✅ **True GitOps routing** (single wildcard + Cilium Gateway)
-- ✅ **Add apps via git push** (no manual dashboard updates)
+3. **Clear separation of concerns**
 
-## 🔀 Routing Architecture
+   * `apps` for user workloads (Knative services)
+   * `infra-apps` for platform components (Argo CD, Prometheus, etc.)
 
-### How Traffic Flows
+4. **Minimal but realistic platform stack**
+
+   * k0s for Kubernetes (lightweight)
+   * Traefik for edge ingress & TLS
+   * Knative for serverless workloads
+   * Argo CD for GitOps
+
+5. **Bootstrap once, GitOps forever**
+
+   * Initial cluster bootstrapping via scripts
+   * After bootstrap, Argo CD manages itself and everything else
+
+---
+
+## High-Level Architecture
 
 ```
-Internet → Cloudflare Edge → Tunnel (*.domain) → Cilium cloudflare-gateway →
-    ├─ HTTPRoute → Infrastructure Service
-    └─ HTTPRoute → Istio Gateway → Knative Route → Your Serverless App
+Internet
+   |
+   |  HTTPS (Let's Encrypt for benedict-aryo.com)
+   v
+Traefik (Edge Ingress, TLS)
+   |
+   v
+Knative Networking (Kourier)
+   |
+   v
+Knative Services (Apps)
 ```
 
-**Cloudflare Dashboard** (ONE route, configured once):
-- `*.benedict-aryo.com` → `https://cloudflare-gateway.gateway-system.svc.cluster.local:443`
+GitOps control flow:
 
-**Git** (ALL application routing):
-- Gateway API `HTTPRoute` resources for infrastructure apps (managed in k0s-cluster-bootstrap)
-- HTTPRoute for Jaeger (managed here)
-- Knative Service specs for serverless apps (Istio handles routing)
+```
+Git Repository
+   |
+   v
+Argo CD
+   |
+   v
+Helm (App-of-Apps)
+   |
+   +--> infra-apps (platform components)
+   |
+   +--> apps (Knative services)
+```
 
-**Example: ArgoCD Access (managed in k0s-cluster-bootstrap)**
+---
+
+## Route Management
+
+All inbound traffic is handled by **Traefik**, the edge ingress controller. Traefik routes requests to the appropriate backend service based on the hostname. Routing is configured declaratively using Kubernetes `Ingress` resources.
+
+There are two main categories of routes:
+
+1.  **Infrastructure Routes**: These point to internal platform services, such as the Argo CD dashboard. These are typically configured in the `infra-apps` chart.
+2.  **Application Routes**: These point to user-facing Knative services. These are configured within each application's `values.yaml` in the `/apps` directory.
+
+### Example Routes
+
+*   `https://benedict-aryo.com` -> Knative blog application (primary app)
+*   `https://argocd.benedict-aryo.com` -> Argo CD server dashboard
+*   `https://pdf.benedict-aryo.com` -> Knative PDF utility application
+
+All routes are automatically secured with TLS certificates from Let's Encrypt.
+
+---
+
+## Technology Stack
+
+### Core Platform
+
+* **Kubernetes**: k0s (single-node, lightweight)
+* **Container Runtime**: containerd (default in k0s)
+
+### Networking
+
+* **Edge Ingress**: Traefik
+* **Knative Networking Layer**: Kourier
+* **TLS**: Let's Encrypt via Traefik ACME
+
+### Serverless
+
+* **Knative Serving**
+
+  * Scale-to-zero
+  * Revision-based deployments
+  * HTTP routing
+
+### GitOps
+
+* **Argo CD**
+
+  * App-of-Apps pattern
+  * Self-managed (Argo CD manages Argo CD)
+
+* **Sealed Secrets**
+
+  * Encrypts Kubernetes Secrets for safe storage in Git
+
+### Observability (Infra Apps)
+
+* Prometheus
+* (Optional) Grafana
+
+---
+
+## Repository Structure
+
+```
+.
+├── apps/
+│   ├── blog/
+│   │   ├── values.yaml
+│   │   └── secret.yaml
+│   └── utils/
+│       ├── values.yaml
+│       └── secret.yaml
+│
+├── charts/
+│   ├── primary-chart/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   ├── templates/
+│   │   │   ├── argocd-apps.yaml
+│   │   │   └── namespaces.yaml
+│   │   └── charts/
+│   │       ├── apps/
+│   │       │   ├── Chart.yaml
+│   │       │   ├── values.yaml
+│   │       │   └── templates/
+│   │       │       └── knative-service-from-dir.yaml
+│   │       └── infra-apps/
+│   │           ├── Chart.yaml
+│   │           ├── values.yaml
+│   │           └── templates/
+│   │               └── infra-applications.yaml
+│
+├── cluster-init/
+│   ├── install-argocd.sh
+│   ├── bootstrap.sh
+│   └── root-application.yaml
+│
+└── README.md
+```
+
+---
+
+## Helm Chart Design
+
+### Primary Helm Chart (Root Chart)
+
+The **primary chart** is responsible for:
+
+* Creating namespaces
+* Defining Argo CD Applications
+* Acting as the *App-of-Apps* root
+
+This chart **does not deploy workloads directly**.
+Instead, it tells Argo CD *what other Helm charts to deploy*.
+
+---
+
+### Subchart: `infra-apps`
+
+Purpose:
+
+* Manage **platform and infrastructure components**
+
+Examples:
+
+* Argo CD
+* Prometheus
+* Grafana
+* Knative components (optional, depending on design)
+
+Characteristics:
+
+* Values-driven
+* Mostly standard Helm values
+* Minimal customization
+
+Example `values.yaml`:
 
 ```yaml
-# k0s-cluster-bootstrap/cluster-init/templates/argocd/httproute.yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: argocd-route
-  namespace: argocd
-spec:
-  parentRefs:
-  - name: cloudflare-gateway
-    namespace: gateway-system
-  hostnames:
-  - argocd.benedict-aryo.com
-  rules:
-  - backendRefs:
-    - name: argocd-server
-      namespace: argocd
-      port: 443
+prometheus:
+  enabled: true
+  retention: 7d
+
+argocd:
+  enabled: true
+  server:
+    replicas: 1
+    ingress:
+      enabled: true
+      hosts:
+        - argocd.benedict-aryo.com
+      tls:
+        - secretName: argocd-server-tls
+          hosts:
+            - argocd.benedict-aryo.com
 ```
 
-**Example: Jaeger Access (managed here)**
+---
 
-```yaml
-# charts/serverless-infra/templates/jaeger/httproute.yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: jaeger-route
-  namespace: observability
-spec:
-  parentRefs:
-  - name: cloudflare-gateway
-    namespace: gateway-system
-  hostnames:
-  - jaeger.benedict-aryo.com
-  rules:
-  - backendRefs:
-    - name: jaeger-query
-      namespace: observability
-      port: 16686
-```
+### Subchart: `apps`
 
-**Example: Deploy Serverless App**
+Purpose:
+
+* Deploy **user-facing applications** as Knative Services from definitions in the `/apps` directory.
+
+Characteristics:
+
+* **Directory-based Apps**: Each subdirectory in `/apps` represents a deployable application.
+* **Knative-native**: Each application is deployed as a Knative Service.
+* **Per-App Configuration**: Each app has its own `values.yaml` for configuration and an optional, encrypted `secret.yaml` for secrets. The `values.yaml` is a Knative service definition, similar to a Google Cloud Run YAML, and it includes the `Ingress` definition for routing.
+* **Source-to-Image (Optional)**: Can build and deploy from a Git repository using Knative Build.
+
+Example `apps/blog/values.yaml` (for the primary domain):
 
 ```yaml
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: hello
-  namespace: default
+  name: blog
 spec:
   template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/target: "10"
     spec:
       containers:
-      - image: gcr.io/knative-samples/helloworld-go
-```
-
-Automatically accessible at: `hello.default.benedict-aryo.com`
-
-**Why This Approach?**
-- ✅ Single wildcard route in Cloudflare (never changes)
-- ✅ All ingress logic (Gateway + HTTPRoutes) lives in Git
-- ✅ Cilium Gateway centralizes TLS/security while Istio focuses on Knative data plane traffic management
-- ✅ Add new apps = git push (no dashboard needed)
-- ✅ Production-grade pattern
-
-## 📚 Prerequisites
-
-### Kubernetes Cluster
-Deployed via [k0s-cluster-bootstrap](https://github.com/BenedictusAryo/k0s-cluster-bootstrap):
-- **Kubernetes**: 1.28+ (via k0s)
-- **Nodes**: 1-10 (VPS/homelab mix supported)
-- **Resources**: 8GB RAM, 4 vCPU minimum per node
-
-### External Requirements
-- **Domain**: Managed in Cloudflare DNS (e.g., `benedict-aryo.com`)
-- **ArgoCD**: Installed and configured
-- **Sealed Secrets**: For secure secret management
-
-## 🚀 Installation
-
-### Automated Deployment (Recommended)
-
-This chart is automatically deployed via ArgoCD when you run the [k0s-cluster-bootstrap](https://github.com/BenedictusAryo/k0s-cluster-bootstrap) setup:
-
-```bash
-# From k0s-cluster-bootstrap repository
-./scripts/setup-argocd.sh
-```
-
-ArgoCD will:
-1. Deploy this Helm chart
-2. Install all components (Cilium, Knative, Istio, etc.)
-3. Configure networking and observability
-4. Set up automatic sync and self-healing
-
-### Manual Deployment (Development)
-
-For testing or development:
-
-```bash
-# Clone the repository
-git clone https://github.com/BenedictusAryo/cluster-serverless.git
-cd cluster-serverless
-
-# Install with Helm
-helm install cluster-serverless . \
-  --create-namespace \
-  --namespace serverless-system \
-  --set global.domain=benedict-aryo.com
-```
-
-Create a custom `values.yaml` file:
-
-```yaml
-# custom-values.yaml
-cilium:
-  enabled: true
-  hubble:
-    enabled: true
-
-knativeServing:
-  enabled: true
-  autoscaling:
-    minScale: 0
-    maxScale: 20
-
-jaeger:
-  enabled: true
-  storage:
-    type: memory
-
-cloudflareTunnel:
-  enabled: true
-  tunnelToken: "your-tunnel-token-here"
-```
-
-Install with custom values:
-
-```bash
-helm install my-serverless . -f custom-values.yaml
-```
-
-## Configuration
-
-### Global Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `global.clusterName` | Name of the cluster | `cluster-serverless` |
-| `global.namespace` | Default namespace | `serverless-system` |
-
-### Cilium Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `cilium.enabled` | Enable Cilium CNI | `true` |
-| `cilium.version` | Cilium version | `1.14.5` |
-| `cilium.hubble.enabled` | Enable Hubble observability | `true` |
-| `cilium.kubeProxyReplacement` | kube-proxy replacement mode | `strict` |
-
-### Knative Serving Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `knativeServing.enabled` | Enable Knative Serving | `true` |
-| `knativeServing.version` | Knative Serving version | `1.11.0` |
-| `knativeServing.autoscaling.minScale` | Minimum replicas | `0` |
-| `knativeServing.autoscaling.maxScale` | Maximum replicas | `10` |
-
-### Knative Eventing Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `knativeEventing.enabled` | Enable Knative Eventing | `true` |
-| `knativeEventing.version` | Knative Eventing version | `1.11.0` |
-| `knativeEventing.broker.type` | Broker type | `MTChannelBasedBroker` |
-
-### Istio Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `istio.enabled` | Enable Istio service mesh | `true` |
-| `istio.ingress.gateway` | Enable Istio ingress gateway | `true` |
-
-### OpenTelemetry Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `opentelemetry.enabled` | Enable OpenTelemetry | `true` |
-| `opentelemetry.collector.replicas` | Number of collector replicas | `1` |
-| `opentelemetry.exporters.jaeger.enabled` | Export to Jaeger | `true` |
-
-### Jaeger Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `jaeger.enabled` | Enable Jaeger | `true` |
-| `jaeger.strategy` | Deployment strategy | `allInOne` |
-| `jaeger.storage.type` | Storage type | `memory` |
-
-### Cloudflare Tunnel Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `cloudflareTunnel.enabled` | Enable Cloudflare Tunnel | `false` |
-| `cloudflareTunnel.tunnelToken` | Tunnel token | `""` |
-| `cloudflareTunnel.replicas` | Number of replicas | `2` |
-
-## Usage
-
-### Deploy a Serverless Application
-
-Once the chart is installed, you can deploy serverless applications using Knative:
-
-```yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: hello-world
-spec:
-  template:
-    spec:
-      containers:
-        - image: gcr.io/knative-samples/helloworld-go
+        - image: ghcr.io/benedictusaryo/blog:latest
+          ports:
+            - containerPort: 8080
           env:
-            - name: TARGET
-              value: "World"
+            - name: ENV
+              value: production
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-ingress
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: "benedict-aryo.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blog
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - "benedict-aryo.com"
+    secretName: blog-tls
 ```
 
-### Access Jaeger UI
+Example `apps/pdf-utils/values.yaml`:
 
-```bash
-kubectl port-forward -n observability svc/jaeger-query 16686:16686
-# Access at http://localhost:16686
+```yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: pdf-utils
+spec:
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/benedict-aryo/pdf-utils:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pdf-utils-ingress
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: "pdf.benedict-aryo.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pdf-utils
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - "pdf.benedict-aryo.com"
+    secretName: pdf-utils-tls
 ```
 
-### View Hubble Network Flow
+Example `apps/blog/secret.yaml` (encrypted with Sealed Secrets):
 
-```bash
-kubectl port-forward -n kube-system svc/hubble-ui 12000:80
-# Access at http://localhost:12000
+```yaml
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: blog-secrets
+  namespace: apps
+spec:
+  encryptedData:
+    DATABASE_URL: Ag...
 ```
 
-## Upgrading
+The `apps` Helm chart will iterate through the directories in `/apps` and apply the `values.yaml` and `secret.yaml` for each one. For source-to-image builds, the `image` field in `values.yaml` would be replaced by a build step that uses the source from a Git repository, for example:
 
-```bash
-helm upgrade my-serverless . -f custom-values.yaml
+```yaml
+# In a conceptual values.yaml for a source-to-image build
+# This is not a direct field in the Knative Service spec,
+# but would be used by the Helm chart logic to create a Knative Build resource.
+source:
+  git:
+    url: https://github.com/BenedictusAryo/personal-web-blog.git
+    revision: main
 ```
 
-## Uninstalling
+---
 
-```bash
-helm uninstall my-serverless
-```
+## App-of-Apps Pattern
 
-## Architecture
+Argo CD is configured so that:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    External Traffic                      │
-└───────────────────┬─────────────────────────────────────┘
-                    │
-         ┌──────────▼──────────┐
-         │ Cloudflare Tunnel   │ (Optional)
-         │  (Secure Access)    │
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │      Istio          │
-         │   (Service Mesh)    │
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  Knative Serving    │
-         │  (Serverless Apps)  │
-         └──────────┬──────────┘
-                    │
-    ┌───────────────┴───────────────┐
-    │                               │
-┌───▼────┐                   ┌──────▼──────┐
-│ Cilium │                   │  Knative    │
-│  (CNI) │                   │  Eventing   │
-└────────┘                   └──────┬──────┘
-                                    │
-                        ┌───────────┴───────────┐
-                        │                       │
-                 ┌──────▼────────┐      ┌──────▼─────┐
-                 │ OpenTelemetry │      │   Jaeger   │
-                 │  (Collector)  │      │ (Tracing)  │
-                 └───────────────┘      └────────────┘
-```
+* One **root application** points to this Git repository (`https://github.com/BenedictusAryo/cluster-serverless.git`)
+* That root application installs the **primary Helm chart**
+* The primary Helm chart defines **child Argo CD applications**
+* Each child application points to:
 
-## Troubleshooting
+  * `apps`
+  * `infra-apps`
 
-### Check Pod Status
+This provides:
 
-```bash
-kubectl get pods -n knative-serving
-kubectl get pods -n knative-eventing
-kubectl get pods -n observability
-```
+* Clear dependency ordering
+* Independent sync
+* Easy scaling of apps and infra
 
-### View Logs
+---
 
-```bash
-kubectl logs -n knative-serving -l app=controller
-kubectl logs -n observability -l app.kubernetes.io/name=jaeger
-```
+## Cluster Bootstrap (`cluster-init`)
 
-### Common Issues
+The `cluster-init` directory exists **only for first-time setup**.
 
-1. **Pods not starting**: Check resource availability and node capacity
-2. **Services not accessible**: Verify Istio gateway and route configuration
-3. **Tracing not working**: Ensure OpenTelemetry is configured to export to Jaeger
+### Responsibilities
 
-## Contributing
+* Install Argo CD into the cluster
+* Apply required CRDs
+* Create the root Argo CD Application
 
-Contributions are welcome! Please open an issue or submit a pull request.
+After this step:
+
+> **All further changes are done via Git only.**
+
+### Typical Flow
+
+1. Create k0s cluster
+2. Configure kubectl access
+3. Run:
+
+   ```bash
+   cd cluster-init
+   ./bootstrap.sh
+   ```
+
+What this script does:
+
+* Installs Argo CD manifests
+* Waits for Argo CD to be ready
+* Applies `root-application.yaml`
+
+---
+
+## GitOps Workflow
+
+1. Developer pushes change to GitHub
+2. Argo CD detects drift
+3. Helm templates are rendered
+4. Kubernetes reconciles state
+
+No manual `kubectl apply` is required after bootstrap.
+
+---
+
+## Security Considerations
+
+* Only Traefik exposes ports 80/443
+* All apps are `ClusterIP`
+* HTTPS enforced everywhere
+* **Secrets are encrypted** in Git using Sealed Secrets
+* Admin UIs are not publicly exposed
+* Git is the only control plane
+
+---
+
+## Who Is This For?
+
+This repository is ideal for:
+
+* Platform engineers
+* Kubernetes learners
+* Homelab enthusiasts
+* Developers wanting production-like GitOps flows
+
+---
+
+## Future Improvements
+
+* Gateway API migration
+* External Secrets integration
+* OIDC authentication for Argo CD
+* Multi-cluster support
+* Progressive delivery (canary/blue-green)
+
+---
 
 ## License
 
-See [LICENSE](LICENSE) file for details.
-
-## Support
-
-For issues and questions:
-- GitHub Issues: https://github.com/BenedictusAryo/cluster-serverless/issues
-- Documentation: https://github.com/BenedictusAryo/cluster-serverless
-
-
-## 🏗️ Project Structure
-
-```
-cluster-serverless/
-├── Chart.yaml                # Root Helm chart with subchart dependencies
-├── values.yaml               # Global config + subchart enables
-├── apps/                     # Application configurations
-│   └── templates/            # Application manifests (ArgoCD Applications)
-├── app/                      # Individual Knative applications (like aiplatform-dev)
-│   ├── hello-knative/        # Example Knative app
-│   │   ├── values.yaml       # App-specific configuration
-│   │   └── application.env   # Non-sensitive environment variables
-│   └── echo-server/          # Another example app
-│       ├── values.yaml       # App-specific configuration
-│       └── application.env   # Non-sensitive environment variables
-├── charts/                   # Subcharts
-│   ├── serverless-infra/     # Serverless infrastructure subchart
-│   │   ├── Chart.yaml
-│   │   ├── values.yaml       # Knative, Istio, Jaeger, OpenTelemetry config
-│   │   └── templates/        # Infrastructure components + Jaeger HTTPRoute
-│   └── serverless-app/       # Serverless applications subchart
-│       ├── Chart.yaml
-│       ├── values.yaml       # App configurations
-│       └── templates/        # Example hello-world Knative Service
-├── templates/                # Global templates
-│   ├── _helpers.tpl
-│   └── knativeservice.yaml   # Knative Service template for apps
-└── docs/                     # Documentation
-```
-
-## 📁 App Management Pattern
-
-This repository follows the same app management pattern as aiplatform-dev:
-
-### App Structure
-- **app/** directory contains individual Knative applications 
-- Each app has its own `values.yaml` for configuration
-- Each app has its own `application.env` for non-sensitive environment variables
-- Template-based deployments using the `knativeservice.yaml` template
-
-### Environment Variables Management
-- **Non-sensitive variables**: Stored in `application.env` and referenced in `values.yaml`
-- **Sensitive data**: Managed separately through Kubernetes Secrets/SealedSecrets
-- **Configuration separation**: Environment-specific settings kept in Git in a secure manner
-
-### GitOps Integration
-- Each app can be managed as a separate ArgoCD Application
-- Supports the ApplicationSet pattern for automatic app discovery
-- Self-healing through GitOps reconciliation
+MIT
 
