@@ -39,7 +39,7 @@ spec:
   commonName: benedict-aryo.com
   dnsNames:
     - benedict-aryo.com
-    - "*.benedict-aryo.com"
+    - pdf.benedict-aryo.com
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
