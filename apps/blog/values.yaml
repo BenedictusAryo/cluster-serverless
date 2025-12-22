@@ -14,7 +14,7 @@ spec:
       containers:
         - image: ghcr.io/benedictusaryo/personal-web-blog:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 80
           env:
             # Django Settings
             - name: SECRET_KEY
