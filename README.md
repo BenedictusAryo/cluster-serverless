@@ -85,18 +85,52 @@ Helm (App-of-Apps)
 
 ## Route Management
 
-All inbound traffic is handled by **Traefik**, the edge ingress controller. Traefik routes requests to the appropriate backend service based on the hostname. Routing is configured declaratively using Kubernetes `Ingress` resources.
+All inbound traffic is handled by **Traefik**, the edge ingress controller. Traefik forwards traffic to the appropriate backend based on hostname:
 
-There are two main categories of routes:
+### Routing Architecture
 
-1.  **Infrastructure Routes**: These point to internal platform services, such as the Argo CD dashboard. These are typically configured in the `infra-apps` chart.
-2.  **Application Routes**: These point to user-facing Knative services. These are configured within each application's `values.yaml` in the `/apps` directory.
+1. **Infrastructure Routes** (Traditional Ingress):
+   - Point to internal platform services like Argo CD
+   - Use standard Kubernetes Ingress resources
+   - Example: `argocd.benedict-aryo.com` → Argo CD server
+
+2. **Application Routes** (Knative DomainMapping):
+   - Point to user-facing Knative services
+   - Use Knative DomainMapping CRDs
+   - Traefik forwards to Kourier, which routes to the correct Knative service
+   - Configured in each app's directory (e.g., `apps/blog/domainmapping.yaml`)
+
+### Traffic Flow
+
+```
+Internet → Traefik (TLS termination) → Kourier → Knative Service
+```
 
 ### Example Routes
 
-*   `https://benedict-aryo.com` -> Knative blog application (primary app)
-*   `https://argocd.benedict-aryo.com` -> Argo CD server dashboard
-*   `https://pdf.benedict-aryo.com` -> Knative PDF utility application
+*   `https://benedict-aryo.com` → Blog Knative Service (via DomainMapping)
+*   `https://pdf.benedict-aryo.com` → PDF Utils Knative Service (via DomainMapping)
+*   `https://argocd.benedict-aryo.com` → Argo CD server (via Ingress)
+
+### Adding New Apps
+
+To add a new Knative app with a custom domain:
+
+1. Create the Knative Service in `apps/your-app/values.yaml`
+2. Create a DomainMapping in `apps/your-app/domainmapping.yaml`:
+   ```yaml
+   apiVersion: serving.knative.dev/v1beta1
+   kind: DomainMapping
+   metadata:
+     name: your-subdomain.benedict-aryo.com
+     namespace: apps
+   spec:
+     ref:
+       name: your-app
+       kind: Service
+       apiVersion: serving.knative.dev/v1
+   ```
+3. Commit and push - Argo CD will sync automatically
 
 All routes are automatically secured with TLS certificates from Let's Encrypt.
 
@@ -229,12 +263,15 @@ apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
   name: blog
+  namespace: apps
 spec:
   template:
     metadata:
       annotations:
         autoscaling.knative.dev/target: "10"
     spec:
+      imagePullSecrets:
+        - name: ghcr-login
       containers:
         - image: ghcr.io/benedictusaryo/personal-web-blog:latest
           ports:
@@ -242,30 +279,21 @@ spec:
           env:
             - name: ENV
               value: production
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+```
+
+Example `apps/blog/domainmapping.yaml`:
+
+```yaml
+apiVersion: serving.knative.dev/v1beta1
+kind: DomainMapping
 metadata:
-  name: blog-ingress
-  annotations:
-    kubernetes.io/ingress.class: "traefik"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  name: benedict-aryo.com
+  namespace: apps
 spec:
-  rules:
-  - host: "benedict-aryo.com"
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: blog
-            port:
-              number: 80
-  tls:
-  - hosts:
-    - "benedict-aryo.com"
-    secretName: blog-tls
+  ref:
+    name: blog
+    kind: Service
+    apiVersion: serving.knative.dev/v1
 ```
 
 Example `apps/pdf-utils/values.yaml`:
@@ -275,37 +303,29 @@ apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
   name: pdf-utils
+  namespace: apps
 spec:
   template:
     spec:
       containers:
-        - image: ghcr.io/benedict-aryo/pdf-utils:latest
+        - image: ghcr.io/stirling-tools/stirling-pdf:latest
           ports:
             - containerPort: 8080
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+```
+
+Example `apps/pdf-utils/domainmapping.yaml`:
+
+```yaml
+apiVersion: serving.knative.dev/v1beta1
+kind: DomainMapping
 metadata:
-  name: pdf-utils-ingress
-  annotations:
-    kubernetes.io/ingress.class: "traefik"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  name: pdf.benedict-aryo.com
+  namespace: apps
 spec:
-  rules:
-  - host: "pdf.benedict-aryo.com"
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: pdf-utils
-            port:
-              number: 80
-  tls:
-  - hosts:
-    - "pdf.benedict-aryo.com"
-    secretName: pdf-utils-tls
+  ref:
+    name: pdf-utils
+    kind: Service
+    apiVersion: serving.knative.dev/v1
 ```
 
 Example `apps/blog/secret.yaml` (encrypted with Sealed Secrets):
