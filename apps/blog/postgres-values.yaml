@@ -1,0 +1,102 @@
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: blog-postgres-credentials
+  namespace: apps
+spec:
+  encryptedData:
+    database: ""
+    password: ""
+    username: ""
+  template:
+    metadata:
+      name: blog-postgres-credentials
+      namespace: apps
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: postgres-admin
+  namespace: apps
+spec:
+  encryptedData:
+    postgres-password: ""
+  template:
+    metadata:
+      name: postgres-admin
+      namespace: apps
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: blog-db-provision
+  namespace: apps
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-database
+          image: bitnamilegacy/postgresql:17
+          env:
+            - name: PGHOST
+              value: postgres.infra.svc.cluster.local
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-admin
+                  key: postgres-password
+            - name: PGDATABASE
+              value: postgres
+            - name: APP_DB
+              valueFrom:
+                secretKeyRef:
+                  name: blog-postgres-credentials
+                  key: database
+            - name: APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: blog-postgres-credentials
+                  key: username
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: blog-postgres-credentials
+                  key: password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
+                sleep 2
+              done
+              if ! [[ "$APP_DB" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                echo "Database name must start with a letter or underscore and contain only alphanumeric characters or underscores"; exit 1
+              fi
+              if ! [[ "$APP_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                echo "Database user must start with a letter or underscore and contain only alphanumeric characters or underscores"; exit 1
+              fi
+              psql -v ON_ERROR_STOP=1 -v app_db="$APP_DB" -v app_user="$APP_USER" -v app_password="$APP_PASSWORD" <<'EOF'
+SELECT format('CREATE DATABASE %I;', :'app_db')
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname=:'app_db')
+\gexec
+DO
+$$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=:'app_user') THEN
+    EXECUTE format('CREATE USER %I WITH PASSWORD %L', :'app_user', :'app_password');
+  ELSE
+    EXECUTE format('ALTER USER %I WITH PASSWORD %L', :'app_user', :'app_password');
+  END IF;
+END
+$$;
+SELECT format('ALTER DATABASE %I OWNER TO %I;', :'app_db', :'app_user')
+WHERE EXISTS (SELECT FROM pg_roles WHERE rolname=:'app_user')
+\gexec
+EOF

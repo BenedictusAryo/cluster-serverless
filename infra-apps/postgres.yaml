@@ -1,0 +1,47 @@
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: postgres-admin
+  namespace: infra
+spec:
+  encryptedData:
+    postgres-password: ""
+  template:
+    metadata:
+      name: postgres-admin
+      namespace: infra
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argocd
+spec:
+  project: infra
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: postgresql
+    targetRevision: 15.5.16
+    helm:
+      releaseName: postgres
+      values: |
+        fullnameOverride: postgres
+        image:
+          repository: bitnamilegacy/postgresql
+          tag: "17"
+        auth:
+          existingSecret: postgres-admin
+          username: postgres
+        primary:
+          service:
+            ports:
+              postgresql: 5432
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

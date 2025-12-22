@@ -173,6 +173,11 @@ All routes are automatically secured with TLS certificates from Let's Encrypt.
 └── README.md
 ```
 
+## PostgreSQL
+
+* `infra-apps/postgres.yaml` deploys PostgreSQL 17 via the Bitnami Helm chart. The chart values manage the Postgres service port and point to a SealedSecret (`postgres-admin`) for the superuser credentials.
+* Each app can ship a `postgres-values.yaml` (see `apps/blog/postgres-values.yaml`) that provisions its own database, username, and password through a SealedSecret-backed job.
+
 ---
 
 ## Helm Chart Design
