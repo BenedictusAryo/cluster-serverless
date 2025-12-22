@@ -419,6 +419,46 @@ No manual `kubectl apply` is required after bootstrap.
 
 ---
 
+## Single-Node VPS Networking
+
+This setup is optimized for a single-node VPS without an external load balancer:
+
+### Traefik Configuration
+
+* **Service Type**: ClusterIP (not LoadBalancer)
+* **Port Binding**: k0s binds Traefik to host ports 80/443
+* **Public Access**: DNS points to VPS IP → k0s host ports → Traefik
+
+### Ingress Health Checks
+
+By default, Kubernetes Ingress resources expect a LoadBalancer to assign an external IP. In a single-node VPS setup:
+
+* Ingress resources won't get an ADDRESS field populated
+* Argo CD would normally show these as "Progressing"
+* **Solution**: Argo CD is configured to treat all Ingress resources as healthy
+
+This is configured in the `argocd-cm` ConfigMap:
+```yaml
+resource.customizations.health.networking.k8s.io_Ingress: |
+  hs = {}
+  hs.status = "Healthy"
+  hs.message = "Ingress is healthy (custom health check for single-node setup)"
+  return hs
+```
+
+### Alternative: MetalLB
+
+If you prefer Ingress resources to have IP addresses assigned:
+
+1. Install MetalLB
+2. Configure an IP pool with your VPS IP
+3. Change Traefik service type to LoadBalancer
+4. Remove the custom Ingress health check
+
+For most single-node setups, the current configuration is simpler and works perfectly.
+
+---
+
 ## Security Considerations
 
 * Only Traefik exposes ports 80/443
