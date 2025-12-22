@@ -1,0 +1,10 @@
+apiVersion: serving.knative.dev/v1beta1
+kind: DomainMapping
+metadata:
+  name: benedict-aryo.com
+  namespace: apps
+spec:
+  ref:
+    name: blog
+    kind: Service
+    apiVersion: serving.knative.dev/v1

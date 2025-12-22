@@ -18,28 +18,3 @@ spec:
           env:
             - name: ENV
               value: production
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: blog-ingress
-  namespace: apps
-  annotations:
-    kubernetes.io/ingress.class: "traefik"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-spec:
-  rules:
-    - host: "benedict-aryo.com"
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: blog
-                port:
-                  number: 80
-  tls:
-    - hosts:
-        - "benedict-aryo.com"
-      secretName: blog-tls
