@@ -38,7 +38,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: create-database
-          image: bitnami/postgresql:17
+          image: bitnamilegacy/postgresql:17
           env:
             - name: PGHOST
               value: postgres.infra.svc.cluster.local

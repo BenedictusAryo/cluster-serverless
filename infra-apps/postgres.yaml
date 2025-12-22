@@ -26,12 +26,13 @@ spec:
       releaseName: postgres
       values: |
         fullnameOverride: postgres
+        image:
+          repository: bitnamilegacy/postgresql
+          tag: "17"
         auth:
           existingSecret: postgres-admin
           username: postgres
         primary:
-          image:
-            tag: "17"
           service:
             ports:
               postgresql: 5432
