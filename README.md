@@ -236,7 +236,7 @@ spec:
         autoscaling.knative.dev/target: "10"
     spec:
       containers:
-        - image: ghcr.io/benedictusaryo/blog:latest
+        - image: ghcr.io/benedictusaryo/personal-web-blog:latest
           ports:
             - containerPort: 8080
           env:
