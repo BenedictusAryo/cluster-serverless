@@ -16,5 +16,53 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: ENV
-              value: production
+            # Django Settings
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: personal-web-blog-secrets
+                  key: secret-key
+            - name: DEBUG
+              value: "False"
+            - name: ALLOWED_HOSTS
+              value: "benedict-aryo.com,www.benedict-aryo.com"
+            - name: APP_ENV
+              value: "production"
+
+            # Database Configuration
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: personal-web-blog-secrets
+                  key: database-url
+
+            # Individual database components (mapping to blog-postgres-credentials)
+            - name: DB_ENGINE
+              value: "django.db.backends.postgresql"
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: blog-postgres-credentials
+                  key: database
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: blog-postgres-credentials
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: blog-postgres-credentials
+                  key: password
+            - name: DB_HOST
+              value: "postgres.infra.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+
+            # Wagtail Settings
+            - name: WAGTAILADMIN_BASE_URL
+              value: "https://benedict-aryo.com"
+
+            # Python Settings
+            - name: PYTHONUNBUFFERED
+              value: "1"
