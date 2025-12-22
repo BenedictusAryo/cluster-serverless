@@ -14,7 +14,6 @@ spec:
       name: blog-postgres-credentials
       namespace: apps
 ---
----
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
