@@ -1,0 +1,13 @@
+apiVersion: k0s.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: k0s-single-node
+spec:
+  api:
+    externalAddress: ""
+    sans:
+      - 127.0.0.1
+  network:
+    provider: calico
+  storage:
+    type: etcd

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: primary-chart
+description: App-of-Apps root chart for cluster-serverless
+version: 0.1.0
+appVersion: "1.0.0"
+type: application

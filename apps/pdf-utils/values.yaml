@@ -1,0 +1,37 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: pdf-utils
+  namespace: apps
+spec:
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/stirling-tools/stirling-pdf:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pdf-utils-ingress
+  namespace: apps
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+    - host: "pdf.benedict-aryo.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pdf-utils
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - "pdf.benedict-aryo.com"
+      secretName: pdf-utils-tls

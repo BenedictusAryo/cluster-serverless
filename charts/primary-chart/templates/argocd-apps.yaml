@@ -1,0 +1,59 @@
+{{- $repoURL := .Values.repoURL -}}
+{{- $targetRevision := .Values.targetRevision -}}
+{{- $destServer := .Values.destinationServer -}}
+{{- $sync := .Values.syncPolicy | default dict -}}
+{{- $apps := .Values.applications.apps -}}
+{{- $infra := .Values.applications.infra -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ default "apps" $apps.name }}
+  namespace: {{ .Values.argocdNamespace }}
+spec:
+  project: {{ default "default" $apps.project }}
+  source:
+    repoURL: {{ $repoURL }}
+    targetRevision: {{ $targetRevision }}
+    path: {{ default "apps" $apps.path }}
+    directory:
+      recurse: true
+  destination:
+    server: {{ $destServer }}
+    namespace: {{ .Values.appsNamespace }}
+  {{- if $sync }}
+  syncPolicy:
+    {{- if $sync.automated }}
+    automated:
+      prune: {{ $sync.prune | default false }}
+      selfHeal: {{ $sync.selfHeal | default false }}
+    {{- end }}
+    syncOptions:
+      - CreateNamespace=true
+  {{- end }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ default "infra-apps" $infra.name }}
+  namespace: {{ .Values.argocdNamespace }}
+spec:
+  project: {{ default "default" $infra.project }}
+  source:
+    repoURL: {{ $repoURL }}
+    targetRevision: {{ $targetRevision }}
+    path: {{ default "infra-apps" $infra.path }}
+    directory:
+      recurse: true
+  destination:
+    server: {{ $destServer }}
+    namespace: {{ .Values.infraNamespace }}
+  {{- if $sync }}
+  syncPolicy:
+    {{- if $sync.automated }}
+    automated:
+      prune: {{ $sync.prune | default false }}
+      selfHeal: {{ $sync.selfHeal | default false }}
+    {{- end }}
+    syncOptions:
+      - CreateNamespace=true
+  {{- end }}

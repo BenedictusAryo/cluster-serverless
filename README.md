@@ -149,33 +149,26 @@ All routes are automatically secured with TLS certificates from Let's Encrypt.
 │   ├── blog/
 │   │   ├── values.yaml
 │   │   └── secret.yaml
-│   └── utils/
+│   └── pdf-utils/
 │       ├── values.yaml
 │       └── secret.yaml
 │
 ├── charts/
-│   ├── primary-chart/
-│   │   ├── Chart.yaml
-│   │   ├── values.yaml
-│   │   ├── templates/
-│   │   │   ├── argocd-apps.yaml
-│   │   │   └── namespaces.yaml
-│   │   └── charts/
-│   │       ├── apps/
-│   │       │   ├── Chart.yaml
-│   │       │   ├── values.yaml
-│   │       │   └── templates/
-│   │       │       └── knative-service-from-dir.yaml
-│   │       └── infra-apps/
-│   │           ├── Chart.yaml
-│   │           ├── values.yaml
-│   │           └── templates/
-│   │               └── infra-applications.yaml
+│   └── primary-chart/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+│           ├── argocd-apps.yaml
+│           └── namespaces.yaml
 │
 ├── cluster-init/
-│   ├── install-argocd.sh
 │   ├── bootstrap.sh
+│   ├── install-argocd.sh
+│   ├── install-k0s-single-node.sh
 │   └── root-application.yaml
+│
+├── config/
+│   └── k0s.yaml
 │
 └── README.md
 ```
@@ -193,53 +186,25 @@ The **primary chart** is responsible for:
 * Acting as the *App-of-Apps* root
 
 This chart **does not deploy workloads directly**.
-Instead, it tells Argo CD *what other Helm charts to deploy*.
+Instead, it tells Argo CD *what other directories to sync* (`apps/` and `infra-apps/`).
 
 ---
 
-### Subchart: `infra-apps`
+### Argo CD Application: `infra-apps/`
 
 Purpose:
 
-* Manage **platform and infrastructure components**
-
-Examples:
-
-* Argo CD
-* Prometheus
-* Grafana
-* Knative components (optional, depending on design)
+* Manage **platform and infrastructure components** that live under `/infra-apps`
+* Provide Argo CD Projects for separation of concerns
 
 Characteristics:
 
-* Values-driven
-* Mostly standard Helm values
-* Minimal customization
-
-Example `values.yaml`:
-
-```yaml
-prometheus:
-  enabled: true
-  retention: 7d
-
-argocd:
-  enabled: true
-  server:
-    replicas: 1
-    ingress:
-      enabled: true
-      hosts:
-        - argocd.benedict-aryo.com
-      tls:
-        - secretName: argocd-server-tls
-          hosts:
-            - argocd.benedict-aryo.com
-```
+* Plain Kubernetes manifests inside the `infra-apps/` directory
+* Synced by the root Argo CD Application defined in the primary chart
 
 ---
 
-### Subchart: `apps`
+### Argo CD Application: `apps/`
 
 Purpose:
 
@@ -464,4 +429,3 @@ This repository is ideal for:
 ## License
 
 MIT
-
