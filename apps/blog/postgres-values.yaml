@@ -5,9 +5,9 @@ metadata:
   namespace: apps
 spec:
   encryptedData:
-    database: ""
-    password: ""
-    username: ""
+    database: AgAhsMfLkiPgWMUJxhUG5du13eSEOXMPMDFPI5w01D3rA2dT13Yub/XybHL8YVLyFt94nerUWA+LcfeA/Uc/XRYrKcKYu6TWHEi3LlSpyUEyd25y/DETOm5tgHV+qXN3mM0h9/xYlfqfIsvX0ABKgcxbpGZm7zuqYuJOHiuBi42OEX9vAuwCcqdHCZwbqLsB8mSjmeFQFdv2+4ygz1loenAFtTzbBzrFBJyJVYGzAa5MiL3WNl8c+hXx3FrytZWCQU1aFM5YxTT0hghEQeUvGqat38JjyeuLf4DfCrQtWy8fi46tp85ABwLvxVmMk/aPm2YyVs0fa0makgZgg8IMsIjPyimWajoq+yITW1Jk94P40F/UIL5KZkdrgt1ThkJIb1oxNtWErnoOUCaEee6cpo5IHO68wogGw0A9CofSndL3zxvRsS9RrLjRV96wxkQIPjXCoH6Gjhf+v18ZOuMeOJcDZ98VERaflFJTkcS7uNw6OavTikY6CCG6Cxyjjg8VhWGCy4c2ET9y50cm9SdDO7dAF7hCi/XJocda6YNxyNdK8Q406n090oGfj/dbs/cRd0hSKcFedwIl55BxbCO3sfKyMkNT2dEiPtIxqY9f1VG822VWso3zMbDQKwbQMp/SdvUczieVKA4n4wPMAnB2c6NvQIVJ2Jv1/lLOH7eoBp5ziaTR8noeOU6EtZN+XTzq9dn65PeC
+    password: AgAfcBw0oby7HQVujKf6V4qkcgV/D539zIPr7eXiTzhyNJGmZq8ZsIt5/ug5MjW3T6GADV7dZGrsv0faOgWKRWkrcVAnnVOa6dR4psw64NNc9G3AxVRdDdS761h7poUytIuZDNl+B7tRt3LvNRt6pi5CWebkezOeLgmfGdq7ovyqKqjsuO0i1uUpX2+0DaLtfABwgDIppDluUh9irM/0l+gGeVFvle3M18Knw8genZ1bkz8LsGSW45Kx6LT0k2YKMZr7OptJvHR7TQoOkbHsI8bKFDKpq5+8mNPRs/8sw8g+LQ0G49+s98V32pMkRmMAFFRiDOOJGq+SHRVqB2H4K3t/YOENNG5DRU7SimNEZoThqEf/FZ1rzTEkly7kGNuEXMPJgjmwvgC5XgqofQmtq1JOWo0PQX3TPLdSBrB7ZLpH2P0zwBOzkBVANcxuG01rROeQwbNsW8YbbQc1yeBHqHy9fSbCghF8HOrkhBTdT0ERTBiIrCBakU8vwXu6tJluwspd+aZk7GyL0D2LBFor2Zrv5IwwJ94Ivfhn6MPzkhl/iO6Af/HROsHZKQTGRjq2jqOWjO/x98TzdiRqZ8aLBSJrmeJtE8LFK69dO2jGmkeJMGAZFL01EfTo/ZhXEJPv1P6VShT08LnazDYZ/fPMIRiPVHbQXPZCbdMhPd3A+L/7g3xBYP0BjSinsibJZc+NmGsC9DVCCXAl7sgtww==
+    username: AgAJ1WOzu9HlK6GU6qGZi197GrVY3YGvjLtACe1q8zs7ZtaHn7xYX06tAMb3rqY4AfmcdS82otTPakUjIpPFlg7pkGCdh+EZ2UqMjiFI5SzoFnf/+OhKBw55Tyo3L1Xg2mWuV9uO/OHD2IKsh4Op/34wBcfrvx3iHYvumJNI0fJHJ3XhdhOwJOYNTE48NF6BTw8ze5N0zVM73qD4OzQVAXxwN/qCyunBrtkJOsiQyrnjXBNTQQxZiLo3ZBH9g5WQ3oclXV1gWAF73u2aIbrTzOuC4xmxFj8Gx2RJ3nm/uoMOcJHBWWRKGxScAFAddU8Cet2F9enhlDYWr4Kpg6f0jCl1YmZFQoTCPJqclNi/U8TC3KgG6ZD/9ogOKKS2hApT4lrxSoRjymoZboc40PRjkzUe7ClyZcn6UbnwFdNd/ah7FTYssuxxhqpL59O6p5dkhQ0f6fNIK9JCCaMFD2yQPe8aUUQjat12vLAXoxzQjsbGBNgwG82g4EutIB88XU8pymR1aLp09n2ComDQVUlDhFSIA4fziUPCulRyNN7ZVZWIAsyNXpO5M/EIGcREhxcLZ+/AEUrD8gEHhV+8gybnelIXV1NTtBS0LRJr32itCGfPdfSMPaQk7ELb0PLegEDUfsdKvgimz12swKfnMTusuCNFhgC/gpeFtcMsI7n89oZENgTTBKOR0+KsjeTO//7bP4QgqtyC
   template:
     metadata:
       name: blog-postgres-credentials
@@ -20,7 +20,7 @@ metadata:
   namespace: apps
 spec:
   encryptedData:
-    postgres-password: ""
+    postgres-password: AgBtY6VcL3zbQcmOPGUjuMHJuem6EhtqHTWrE5pgnhi5Q2wLdCcKxhSN127FW1BwWYklCGEk0aWI5HaSBLO4vZ/68xASxG++Cg0pbujf/OV5Nvo5xEWqJAFHDJkLV6oXN/k/v4FECLMb7upuW5horQ68aOZFn7cN3ljnZgPSEIw2Q2YZzVbz4+NffBvXQ9+TX79ARTsVDJ0E5yrx/4QYIkp5Pe6vUMsGPy2cX60ovfDvSmZ8f8Yn2seen1dL6/cp9awizhu8ORYgdNYTVhVs2v0ZXHtH+MaQ8bi35pbep8TGdFNN8OSgYooaSt+8E66m8q0PaGBovDYFerrvKsvWaF/fq3VFabEgUam5zwkQ5pg0d41ZMbuLE1J0gzGBY6b3u7xEbnzLKOONJbx43RfCu0nUhFcHSyCsFpzsvCHLLQl7G24UpvPI5nywNG5wnHnGNshTGWEN6IiEa7haX5tCb4f3flp/pMJ5YideE83impOOmzg2pNE9h+2IE9/Gr10SZl2d5+O8OcWJqw30Gp2EI4skNjom+pfMhWBZoI68ArPmlJlktHJzMgy7e2aGueh9pvJzFIobaT5P9ttdsTPpjn2AodDooCbLbqxjMfe8y2rF2yPOtL0wziSfTl1flb9ln3748gWqvYzAgo+fDBI/vOj51WvVs/GomepD5OBcqD0nUXMeKHgg2X5Tup8LeTlBbVc9leLHYBhkPKOD9A==
   template:
     metadata:
       name: postgres-admin
@@ -32,12 +32,10 @@ metadata:
   name: blog-db-provision
   namespace: apps
 spec:
-  backoffLimit: 3
   template:
     spec:
-      restartPolicy: OnFailure
       containers:
-        - name: create-database
+        - name: psql
           image: bitnamilegacy/postgresql:17
           env:
             - name: PGHOST
@@ -51,8 +49,6 @@ spec:
                 secretKeyRef:
                   name: postgres-admin
                   key: postgres-password
-            - name: PGDATABASE
-              value: postgres
             - name: APP_DB
               valueFrom:
                 secretKeyRef:
@@ -76,27 +72,21 @@ spec:
               until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
                 sleep 2
               done
-              if ! [[ "$APP_DB" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-                echo "Database name must start with a letter or underscore and contain only alphanumeric characters or underscores"; exit 1
-              fi
-              if ! [[ "$APP_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-                echo "Database user must start with a letter or underscore and contain only alphanumeric characters or underscores"; exit 1
-              fi
-              psql -v ON_ERROR_STOP=1 -v app_db="$APP_DB" -v app_user="$APP_USER" -v app_password="$APP_PASSWORD" <<'EOF'
-SELECT format('CREATE DATABASE %I;', :'app_db')
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname=:'app_db')
-\gexec
-DO
-$$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=:'app_user') THEN
-    EXECUTE format('CREATE USER %I WITH PASSWORD %L', :'app_user', :'app_password');
-  ELSE
-    EXECUTE format('ALTER USER %I WITH PASSWORD %L', :'app_user', :'app_password');
-  END IF;
-END
-$$;
-SELECT format('ALTER DATABASE %I OWNER TO %I;', :'app_db', :'app_user')
-WHERE EXISTS (SELECT FROM pg_roles WHERE rolname=:'app_user')
-\gexec
-EOF
+              psql -v ON_ERROR_STOP=1 <<PSQL_EOF
+              SELECT format('CREATE DATABASE %I;', '$APP_DB')
+              WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='$APP_DB')
+              \gexec
+              DO \$body\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='$APP_USER') THEN
+                  EXECUTE format('CREATE USER %I WITH PASSWORD %L', '$APP_USER', '$APP_PASSWORD');
+                ELSE
+                  EXECUTE format('ALTER USER %I WITH PASSWORD %L', '$APP_USER', '$APP_PASSWORD');
+                END IF;
+              END
+              \$body\$;
+              SELECT format('ALTER DATABASE %I OWNER TO %I;', '$APP_DB', '$APP_USER')
+              WHERE EXISTS (SELECT FROM pg_roles WHERE rolname='$APP_USER')
+              \gexec
+              PSQL_EOF
+      restartPolicy: OnFailure

@@ -38,14 +38,9 @@ if [ -f "${CONFIG_FILE}" ]; then
     echo "📝 Using config: ${CONFIG_FILE}"
     sudo cp "${CONFIG_FILE}" /etc/k0s/k0s.yaml
 
-    read -p "Enter VPS public IP (default: ${SERVER_IP}): " PUBLIC_IP
-    PUBLIC_IP=${PUBLIC_IP:-$SERVER_IP}
-
-    # Add SAN if different
-    if [ "${PUBLIC_IP}" != "${SERVER_IP}" ]; then
-        echo "Adding ${PUBLIC_IP} to API server SANs..."
-        sudo sed -i "/sans:/a\      - ${PUBLIC_IP}" /etc/k0s/k0s.yaml
-    fi
+    # Non-interactive IP setup
+    PUBLIC_IP=${SERVER_IP}
+    echo "Using VPS public IP: ${PUBLIC_IP}"
 
     INSTALL_CMD="${INSTALL_CMD} --config /etc/k0s/k0s.yaml"
 else
