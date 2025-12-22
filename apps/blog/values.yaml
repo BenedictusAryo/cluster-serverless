@@ -9,6 +9,8 @@ spec:
       annotations:
         autoscaling.knative.dev/target: "10"
     spec:
+      imagePullSecrets:
+        - name: ghcr-login
       containers:
         - image: ghcr.io/benedictusaryo/personal-web-blog:latest
           ports:
