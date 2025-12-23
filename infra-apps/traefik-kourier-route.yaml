@@ -63,7 +63,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`benedict-aryo.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.benedict-aryo.com`) && !Host(`argocd.benedict-aryo.com`)
+    - match: (Host(`benedict-aryo.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.benedict-aryo.com`)) && !Host(`argocd.benedict-aryo.com`)
       kind: Rule
       priority: 10
       middlewares:
