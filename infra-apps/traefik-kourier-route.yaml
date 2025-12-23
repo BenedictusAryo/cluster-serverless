@@ -27,11 +27,12 @@ metadata:
 spec:
   entryPoints:
     - web
-  ingressClass: traefik
   routes:
     - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`)
       kind: Rule
       priority: 10
+      middlewares:
+        - name: redirect-to-https
       services:
         - name: kourier
           port: 80
@@ -60,11 +61,12 @@ metadata:
 spec:
   entryPoints:
     - websecure
-  ingressClass: traefik
   routes:
     - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`)
       kind: Rule
       priority: 10
+      middlewares:
+        - name: knative-headers
       services:
         - name: kourier
           port: 80
