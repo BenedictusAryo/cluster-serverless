@@ -8,6 +8,7 @@ spec:
     metadata:
       annotations:
         autoscaling.knative.dev/target: "10"
+        autoscaling.knative.dev/min-scale: "1"
         redeploy-timestamp: "2025-12-23T01:50:00Z"
 
     spec:
