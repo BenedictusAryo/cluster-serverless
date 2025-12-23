@@ -27,13 +27,11 @@ metadata:
 spec:
   entryPoints:
     - web
+  ingressClass: traefik
   routes:
-    - match: (Host(`benedict-aryo.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.benedict-aryo.com`)) && !Host(`argocd.benedict-aryo.com`)
+    - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`)
       kind: Rule
       priority: 10
-      middlewares:
-        - name: redirect-to-https
-          namespace: kourier-system
       services:
         - name: kourier
           port: 80
@@ -62,13 +60,11 @@ metadata:
 spec:
   entryPoints:
     - websecure
+  ingressClass: traefik
   routes:
-    - match: (Host(`benedict-aryo.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.benedict-aryo.com`)) && !Host(`argocd.benedict-aryo.com`)
+    - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`)
       kind: Rule
       priority: 10
-      middlewares:
-        - name: knative-headers
-          namespace: kourier-system
       services:
         - name: kourier
           port: 80
