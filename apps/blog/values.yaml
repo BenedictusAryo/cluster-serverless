@@ -8,6 +8,8 @@ spec:
     metadata:
       annotations:
         autoscaling.knative.dev/target: "10"
+        redeploy-timestamp: "2025-12-23T01:50:00Z"
+
     spec:
       imagePullSecrets:
         - name: ghcr-login
