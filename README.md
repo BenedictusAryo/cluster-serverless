@@ -243,17 +243,19 @@ Characteristics:
 
 ---
 
-### Argo CD Application: `apps/`
+### Per-App ArgoCD Applications
 
 Purpose:
 
-* Deploy **user-facing applications** as Knative Services from definitions in the `/apps` directory.
+* Deploy **individual user-facing applications** as Knative Services, with each app directory in `/apps` managed by its own ArgoCD Application.
 
 Characteristics:
 
-* **Directory-based Apps**: Each subdirectory in `/apps` represents a deployable application.
+* **One ArgoCD Application per App**: Each subdirectory in `/apps` gets its own ArgoCD Application (e.g., `app-blog`, `app-pdf-utils`).
+* **Independent Sync**: Each app syncs independently, allowing granular control and isolated deployments.
 * **Knative-native**: Each application is deployed as a Knative Service.
 * **Per-App Configuration**: Each app has its own `values.yaml` for configuration and an optional, encrypted `secret.yaml` for secrets. The `values.yaml` is a Knative service definition, similar to a Google Cloud Run YAML, and it includes the `Ingress` definition for routing.
+* **Dynamic Generation**: The primary Helm chart reads the `appsList` from `values.yaml` and generates ArgoCD Applications automatically.
 * **Source-to-Image (Optional)**: Can build and deploy from a Git repository using Knative Build.
 
 Example `apps/blog/values.yaml` (for the primary domain):
@@ -341,7 +343,7 @@ spec:
     DATABASE_URL: Ag...
 ```
 
-The `apps` Helm chart will iterate through the directories in `/apps` and apply the `values.yaml` and `secret.yaml` for each one. For source-to-image builds, the `image` field in `values.yaml` would be replaced by a build step that uses the source from a Git repository, for example:
+Each app listed in the primary chart's `appsList` will have its own ArgoCD Application created automatically. The Application will sync all YAML files from the app's directory, including `values.yaml` and `secret.yaml`. For source-to-image builds, the `image` field in `values.yaml` would be replaced by a build step that uses the source from a Git repository, for example:
 
 ```yaml
 # In a conceptual values.yaml for a source-to-image build
@@ -361,17 +363,16 @@ Argo CD is configured so that:
 
 * One **root application** points to this Git repository (`https://github.com/BenedictusAryo/cluster-serverless.git`)
 * That root application installs the **primary Helm chart**
-* The primary Helm chart defines **child Argo CD applications**
-* Each child application points to:
-
-  * `apps`
-  * `infra-apps`
+* The primary Helm chart defines **child Argo CD applications**:
+  * Individual applications for each app in `/apps` (e.g., `app-blog`, `app-pdf-utils`)
+  * One application for `infra-apps`
 
 This provides:
 
 * Clear dependency ordering
-* Independent sync
-* Easy scaling of apps and infra
+* Independent sync per application
+* Granular control and visibility
+* Easy scaling - just add a new entry to `appsList` in `values.yaml`
 
 ---
 
@@ -410,12 +411,29 @@ What this script does:
 
 ## GitOps Workflow
 
-1. Developer pushes change to GitHub
+1. Developer pushes change to GitHub (e.g., updates `apps/blog/values.yaml` or adds a new app)
 2. Argo CD detects drift
-3. Helm templates are rendered
-4. Kubernetes reconciles state
+3. Helm templates are rendered (generates individual ArgoCD Applications)
+4. Each affected application syncs independently
+5. Kubernetes reconciles state
 
 No manual `kubectl apply` is required after bootstrap.
+
+### Adding a New App
+
+1. Create a new directory under `/apps` (e.g., `/apps/my-new-app`)
+2. Add `values.yaml` with Knative Service and Ingress definitions
+3. (Optional) Add `secret.yaml` with encrypted secrets
+4. Add app to `appsList` in `charts/primary-chart/values.yaml`:
+   ```yaml
+   appsList:
+     - name: my-new-app
+       path: apps/my-new-app
+       namespace: apps
+       project: default
+   ```
+5. Push to GitHub
+6. ArgoCD will automatically create a new Application `app-my-new-app` and deploy it
 
 ---
 

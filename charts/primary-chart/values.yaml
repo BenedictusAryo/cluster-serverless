@@ -8,10 +8,20 @@ syncPolicy:
   automated: true
   prune: true
   selfHeal: true
-applications:
-  apps:
-    path: apps
+# Individual app configurations
+appsList:
+  - name: blog
+    path: apps/blog
+    namespace: apps
     project: default
-  infra:
-    path: infra-apps
+  - name: pdf-utils
+    path: apps/pdf-utils
+    namespace: apps
     project: default
+
+# Infrastructure apps configuration
+infraApp:
+  name: infra-apps
+  path: infra-apps
+  namespace: infra
+  project: default

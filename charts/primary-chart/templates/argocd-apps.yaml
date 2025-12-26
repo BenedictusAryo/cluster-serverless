@@ -2,24 +2,28 @@
 {{- $targetRevision := .Values.targetRevision -}}
 {{- $destServer := .Values.destinationServer -}}
 {{- $sync := .Values.syncPolicy | default dict -}}
-{{- $apps := .Values.applications.apps -}}
-{{- $infra := .Values.applications.infra -}}
+{{- $argocdNamespace := .Values.argocdNamespace -}}
+{{/*
+  Generate individual ArgoCD Applications for each app in appsList
+*/}}
+{{- range .Values.appsList }}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: {{ default "apps" $apps.name }}
-  namespace: {{ .Values.argocdNamespace }}
+  name: app-{{ .name }}
+  namespace: {{ $argocdNamespace }}
 spec:
-  project: {{ default "default" $apps.project }}
+  project: {{ .project | default "default" }}
   source:
     repoURL: {{ $repoURL }}
     targetRevision: {{ $targetRevision }}
-    path: {{ default "apps" $apps.path }}
+    path: {{ .path }}
     directory:
       recurse: true
   destination:
     server: {{ $destServer }}
-    namespace: {{ .Values.appsNamespace }}
+    namespace: {{ .namespace }}
   {{- if $sync }}
   syncPolicy:
     {{- if $sync.automated }}
@@ -30,23 +34,27 @@ spec:
     syncOptions:
       - CreateNamespace=true
   {{- end }}
+{{- end }}
+{{/*
+  Generate ArgoCD Application for infrastructure apps
+*/}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: {{ default "infra-apps" $infra.name }}
-  namespace: {{ .Values.argocdNamespace }}
+  name: {{ .Values.infraApp.name }}
+  namespace: {{ $argocdNamespace }}
 spec:
-  project: {{ default "default" $infra.project }}
+  project: {{ .Values.infraApp.project | default "default" }}
   source:
     repoURL: {{ $repoURL }}
     targetRevision: {{ $targetRevision }}
-    path: {{ default "infra-apps" $infra.path }}
+    path: {{ .Values.infraApp.path }}
     directory:
       recurse: true
   destination:
     server: {{ $destServer }}
-    namespace: {{ .Values.infraNamespace }}
+    namespace: {{ .Values.infraApp.namespace }}
   {{- if $sync }}
   syncPolicy:
     {{- if $sync.automated }}
