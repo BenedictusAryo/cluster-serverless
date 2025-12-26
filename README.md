@@ -1,338 +1,403 @@
-# Knative GitOps Helm Monorepo
+# 🚀 Production-Grade Knative Platform on Kubernetes
 
-## Overview
+<div align="center">
 
-This repository is a **GitOps‑oriented Helm monorepo** designed to run on a **single‑node Kubernetes cluster (k0s)** hosted on a VPS. It focuses on **serverless application deployment using Knative**, **declarative infrastructure management**, and a **clean App‑of‑Apps pattern with Argo CD**.
+**A GitOps-driven, serverless-first Kubernetes platform showcasing modern cloud-native architecture and platform engineering practices**
 
-The repository intentionally separates **application concerns** from **platform/infrastructure concerns**, while still allowing everything to be bootstrapped from a single entry point.
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-k0s-326CE5?logo=kubernetes&logoColor=white)](https://k0sproject.io/)
+[![ArgoCD](https://img.shields.io/badge/GitOps-ArgoCD-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
+[![Knative](https://img.shields.io/badge/Serverless-Knative-0865AD?logo=knative&logoColor=white)](https://knative.dev/)
+[![Helm](https://img.shields.io/badge/Package-Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
+[![Traefik](https://img.shields.io/badge/Ingress-Traefik-24A1C1?logo=traefikproxy&logoColor=white)](https://traefik.io/)
 
-This repo is meant to be:
+[Live Demo](https://benedict-aryo.com) • [Architecture](#-architecture) • [Features](#-key-features) • [Getting Started](#-getting-started)
 
-* A **learning platform** for Kubernetes, Knative, and GitOps
-* A **personal platform** for blogs, utilities, and experiments
-* A **production‑like but lightweight** setup suitable for 1 VPS
-
----
-
-## Goals
-
-The primary goals of this repository are:
-
-1. **Serverless-first deployment**
-
-   * Applications are deployed as Knative Services
-   * Scale to zero when idle
-   * Simple HTTP-based workloads (blog, utilities, tools)
-
-2. **GitOps as the source of truth**
-
-   * Git is the single source of truth
-   * All changes are declarative
-   * Argo CD continuously reconciles desired state
-
-3. **Clear separation of concerns**
-
-   * `apps` for user workloads (Knative services)
-   * `infra-apps` for platform components (Argo CD, Prometheus, etc.)
-
-4. **Minimal but realistic platform stack**
-
-   * k0s for Kubernetes (lightweight)
-   * Traefik for edge ingress & TLS
-   * Knative for serverless workloads
-   * Argo CD for GitOps
-
-5. **Bootstrap once, GitOps forever**
-
-   * Initial cluster bootstrapping via scripts
-   * After bootstrap, Argo CD manages itself and everything else
+</div>
 
 ---
 
-## High-Level Architecture
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Architecture](#-architecture)
+- [Technology Stack](#-technology-stack)
+- [Repository Structure](#-repository-structure)
+- [Getting Started](#-getting-started)
+- [GitOps Workflow](#-gitops-workflow)
+- [Platform Engineering Highlights](#-platform-engineering-highlights)
+
+---
+
+## 🎯 Overview
+
+This repository demonstrates **production-grade platform engineering** by implementing a fully automated, GitOps-driven Kubernetes platform for serverless application deployment. Built for a single-node VPS, it showcases how to design, deploy, and operate cloud-native infrastructure using industry best practices.
+
+### What Makes This Special?
+
+- **100% GitOps**: Everything is declarative and version-controlled—infrastructure, applications, and configurations
+- **Serverless-First**: Applications automatically scale to zero when idle, optimizing resource utilization
+- **Zero-Touch Operations**: After initial bootstrap, all changes flow through Git commits (no manual kubectl commands)
+- **Production-Ready Security**: TLS everywhere, encrypted secrets, principle of least privilege
+- **App-of-Apps Pattern**: Hierarchical ArgoCD applications for scalable multi-tenant management
+
+### Real-World Applications
+
+- 🌐 **[Personal Blog](https://benedict-aryo.com)** - Django application with PostgreSQL backend
+- 📄 **[PDF Utilities](https://pdf.benedict-aryo.com)** - Document processing service
+- ⚙️ **Platform Services** - ArgoCD, PostgreSQL, monitoring stack
+
+---
+
+## ✨ Key Features
+
+### Platform Engineering
+
+| Feature | Implementation | Benefit |
+|---------|---------------|---------|
+| **GitOps Automation** | ArgoCD with App-of-Apps pattern | Single source of truth, audit trail, easy rollbacks |
+| **Serverless Runtime** | Knative Serving | Scale-to-zero, automatic scaling, cost optimization |
+| **Infrastructure as Code** | Helm charts + Kubernetes manifests | Reproducible deployments, version control |
+| **Secrets Management** | Sealed Secrets | Encrypted secrets safely stored in Git |
+| **Per-App Isolation** | Individual ArgoCD Applications | Independent sync, granular RBAC, isolated deployments |
+
+### Developer Experience
+
+- **Self-Service App Deployment**: Add new apps by creating a directory and updating values.yaml
+- **Automatic TLS**: Let's Encrypt certificates provisioned automatically
+- **Database Provisioning**: PostgreSQL databases created per-app with sealed credentials
+- **Traffic Routing**: Custom domain mapping with Knative DomainMapping CRDs
+
+### Operational Excellence
+
+- **Bootstrap Once, GitOps Forever**: Initial cluster setup, then pure Git-driven operations
+- **Separation of Concerns**: Clear boundaries between apps, infrastructure, and platform config
+- **Pull-Based Reconciliation**: ArgoCD continuously ensures desired state
+- **Health Monitoring**: Custom health checks for single-node VPS architecture
+
+---
+
+## 🏗️ Architecture
+
+### Request Flow
 
 ```
-Internet
-   |
-   |  HTTPS (Let's Encrypt for benedict-aryo.com)
-   v
-Traefik (Edge Ingress, TLS)
-   |
-   v
-Knative Networking (Kourier)
-   |
-   v
-Knative Services (Apps)
+┌─────────────┐
+│   Internet  │
+└──────┬──────┘
+       │ HTTPS (TLS via Let's Encrypt)
+       ▼
+┌─────────────────────────┐
+│  Traefik (Edge Ingress) │ ← TLS Termination, L7 Routing
+└──────┬──────────────────┘
+       │
+       ├──→ argocd.* ──→ [ArgoCD Dashboard]
+       │
+       └──→ *.benedict-aryo.com
+                  │
+                  ▼
+       ┌──────────────────────┐
+       │ Kourier (Knative L7) │
+       └──────┬───────────────┘
+              │
+    ┌─────────┴─────────┐
+    ▼                   ▼
+[Blog Service]    [PDF Service]
+ (Scale-to-0)      (Scale-to-0)
 ```
 
-GitOps control flow:
+### GitOps Control Flow
+
+```mermaid
+graph TD
+    A[Git Repository] -->|Webhook/Poll| B[ArgoCD]
+    B -->|Renders| C[Helm Charts]
+    C -->|Generates| D[ArgoCD Applications]
+    D -->|Creates| E[app-blog]
+    D -->|Creates| F[app-pdf-utils]
+    D -->|Creates| G[infra-apps]
+    E -->|Deploys| H[Knative Services]
+    F -->|Deploys| H
+    G -->|Deploys| I[Platform Components]
+    I --> J[PostgreSQL]
+    I --> K[Sealed Secrets]
+```
+
+### App-of-Apps Hierarchy
 
 ```
-Git Repository
-   |
-   v
-Argo CD
-   |
-   v
-Helm (App-of-Apps)
-   |
-   +--> infra-apps (platform components)
-   |
-   +--> apps (Knative services)
+cluster-serverless-root (Helm)
+├── app-blog
+│   ├── Knative Service
+│   ├── DomainMapping
+│   ├── SealedSecrets
+│   └── PostgreSQL Config Job
+├── app-pdf-utils
+│   ├── Knative Service
+│   ├── DomainMapping
+│   └── Persistent Volume
+└── infra-apps
+    ├── ArgoCD Config
+    ├── PostgreSQL Cluster
+    ├── Traefik-Kourier Routes
+    └── Sealed Secrets Controller
 ```
 
 ---
 
-## Route Management
+## 🛠️ Technology Stack
 
-All inbound traffic is handled by **Traefik**, the edge ingress controller. Traefik forwards traffic to the appropriate backend based on hostname:
+<table>
+<tr>
+<td valign="top" width="50%">
 
-### Routing Architecture
+### Platform Layer
+- **Kubernetes Distribution**: [k0s](https://k0sproject.io/) (lightweight, single-binary)
+- **Container Runtime**: containerd
+- **Package Manager**: Helm 3
+- **GitOps Engine**: ArgoCD
+- **VCS**: GitHub
 
-1. **Infrastructure Routes** (Traditional Ingress):
-   - Point to internal platform services like Argo CD
-   - Use standard Kubernetes Ingress resources
-   - Example: `argocd.benedict-aryo.com` → Argo CD server
+### Networking
+- **Edge Ingress**: Traefik 2.x
+- **Service Mesh**: Kourier (Knative networking)
+- **TLS/Certificates**: Let's Encrypt (ACME)
+- **DNS**: Cloudflare
 
-2. **Application Routes** (Knative DomainMapping):
-   - Point to user-facing Knative services
-   - Use Knative DomainMapping CRDs
-   - Traefik forwards to Kourier, which routes to the correct Knative service
-   - Configured in each app's directory (e.g., `apps/blog/domainmapping.yaml`)
+</td>
+<td valign="top" width="50%">
 
-### Traffic Flow
+### Application Layer
+- **Serverless Framework**: Knative Serving
+- **Database**: PostgreSQL 17 (Bitnami Helm chart)
+- **Secret Encryption**: Sealed Secrets
+- **Image Registry**: GitHub Container Registry (GHCR)
+
+### Observability (Planned)
+- **Metrics**: Prometheus
+- **Visualization**: Grafana
+- **Logging**: Loki (future)
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📁 Repository Structure
 
 ```
-Internet → Traefik (TLS termination) → Kourier → Knative Service
+.
+├── apps/                              # User-facing applications
+│   ├── blog/
+│   │   ├── values.yaml                # Knative Service definition
+│   │   ├── domainmapping.yaml         # Custom domain mapping
+│   │   ├── secret.yaml                # Sealed secrets
+│   │   ├── postgres-values.yaml       # Database provisioning
+│   │   └── ghcr-login-sealed.yaml     # Registry authentication
+│   └── pdf-utils/
+│       ├── values.yaml
+│       ├── domainmapping.yaml
+│       ├── secret.yaml
+│       └── persistence.yaml           # PVC for file storage
+│
+├── charts/
+│   └── primary-chart/                 # Root Helm chart (App-of-Apps)
+│       ├── Chart.yaml
+│       ├── values.yaml                # Application registry
+│       └── templates/
+│           ├── argocd-apps.yaml       # Generates child Applications
+│           └── namespaces.yaml        # Namespace creation
+│
+├── infra-apps/                        # Platform infrastructure
+│   ├── argocd-config.yaml             # ArgoCD ConfigMap + RBAC
+│   ├── argocd-ingress.yaml            # ArgoCD dashboard routing
+│   ├── postgres.yaml                  # PostgreSQL Helm release
+│   ├── kourier-bootstrap.yaml         # Knative networking setup
+│   └── traefik-kourier-route.yaml     # Traefik → Kourier integration
+│
+├── cluster-init/                      # Bootstrap scripts (one-time use)
+│   ├── bootstrap.sh                   # Master bootstrap script
+│   ├── install-k0s-single-node.sh     # k0s installation
+│   ├── install-argocd.sh              # ArgoCD installation
+│   └── root-application.yaml          # ArgoCD root app
+│
+├── config/
+│   ├── k0s.yaml                       # k0s cluster configuration
+│   └── k0s.yaml.default               # Default k0s config template
+│
+└── README.md                          # This file
 ```
 
-### Example Routes
+---
 
-*   `https://benedict-aryo.com` → Blog Knative Service (via DomainMapping)
-*   `https://pdf.benedict-aryo.com` → PDF Utils Knative Service (via DomainMapping)
-*   `https://argocd.benedict-aryo.com` → Argo CD server (via Ingress)
+## 🚀 Getting Started
 
-### Adding New Apps
+### Prerequisites
 
-To add a new Knative app with a custom domain:
+- A VPS with:
+  - Ubuntu 22.04 LTS (recommended)
+  - 4GB RAM minimum (8GB recommended)
+  - 20GB+ storage
+  - Public IPv4 address
+- Domain name with DNS access
+- SSH access to the VPS
 
-1. Create the Knative Service in `apps/your-app/values.yaml`
-2. Create a DomainMapping in `apps/your-app/domainmapping.yaml`:
+### Installation
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/BenedictusAryo/cluster-serverless.git
+cd cluster-serverless
+```
+
+#### 2. Configure DNS
+
+Point your domain to your VPS IP:
+```
+benedict-aryo.com         A  <VPS_IP>
+*.benedict-aryo.com       A  <VPS_IP>
+argocd.benedict-aryo.com  A  <VPS_IP>
+```
+
+#### 3. Bootstrap the Cluster
+
+```bash
+cd cluster-init
+./bootstrap.sh
+```
+
+This script will:
+1. ✅ Install k0s Kubernetes distribution
+2. ✅ Configure kubectl access
+3. ✅ Install ArgoCD
+4. ✅ Deploy the root ArgoCD Application
+5. ✅ Wait for all applications to sync
+
+#### 4. Access ArgoCD
+
+```bash
+# Get admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
+
+# Access dashboard
+open https://argocd.benedict-aryo.com
+```
+
+#### 5. Deploy Applications
+
+All applications are now managed via Git! Make changes, commit, and push:
+
+```bash
+# Example: Update blog image version
+vim apps/blog/values.yaml
+git add apps/blog/values.yaml
+git commit -m "feat(blog): update to v2.0.0"
+git push
+
+# ArgoCD automatically detects and deploys the change
+```
+
+---
+
+## 🔄 GitOps Workflow
+
+### Day-to-Day Operations
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Git as GitHub
+    participant Argo as ArgoCD
+    participant K8s as Kubernetes
+    
+    Dev->>Git: 1. git push (change app config)
+    Git-->>Argo: 2. Poll/Webhook notification
+    Argo->>Argo: 3. Detect drift
+    Argo->>Argo: 4. Render Helm templates
+    Argo->>K8s: 5. Apply manifests
+    K8s->>K8s: 6. Reconcile resources
+    K8s-->>Argo: 7. Report health status
+    Argo-->>Dev: 8. Sync complete notification
+```
+
+### Adding a New Application
+
+1. **Create app directory**:
+   ```bash
+   mkdir -p apps/my-app
+   ```
+
+2. **Define Knative Service** (`apps/my-app/values.yaml`):
+   ```yaml
+   apiVersion: serving.knative.dev/v1
+   kind: Service
+   metadata:
+     name: my-app
+     namespace: apps
+   spec:
+     template:
+       spec:
+         containers:
+           - image: ghcr.io/myuser/my-app:latest
+             ports:
+               - containerPort: 8080
+   ```
+
+3. **Configure domain mapping** (`apps/my-app/domainmapping.yaml`):
    ```yaml
    apiVersion: serving.knative.dev/v1beta1
    kind: DomainMapping
    metadata:
-     name: your-subdomain.benedict-aryo.com
+     name: myapp.benedict-aryo.com
      namespace: apps
    spec:
      ref:
-       name: your-app
+       name: my-app
        kind: Service
        apiVersion: serving.knative.dev/v1
    ```
-3. Commit and push - Argo CD will sync automatically
 
-All routes are automatically secured with TLS certificates from Let's Encrypt.
+4. **Register in ArgoCD** (`charts/primary-chart/values.yaml`):
+   ```yaml
+   appsList:
+     - name: my-app
+       path: apps/my-app
+       namespace: apps
+       project: default
+   ```
 
----
+5. **Commit and push**:
+   ```bash
+   git add apps/my-app charts/primary-chart/values.yaml
+   git commit -m "feat: add my-app application"
+   git push
+   ```
 
-## Technology Stack
-
-### Core Platform
-
-* **Kubernetes**: k0s (single-node, lightweight)
-* **Container Runtime**: containerd (default in k0s)
-
-### Networking
-
-* **Edge Ingress**: Traefik
-* **Knative Networking Layer**: Kourier
-* **TLS**: Let's Encrypt via Traefik ACME
-
-### Serverless
-
-* **Knative Serving**
-
-  * Scale-to-zero
-  * Revision-based deployments
-  * HTTP routing
-
-### GitOps
-
-* **Argo CD**
-
-  * App-of-Apps pattern
-  * Self-managed (Argo CD manages Argo CD)
-
-* **Sealed Secrets**
-
-  * Encrypts Kubernetes Secrets for safe storage in Git
-
-### Observability (Infra Apps)
-
-* Prometheus
-* (Optional) Grafana
+ArgoCD will automatically:
+- Create a new Application `app-my-app`
+- Deploy the Knative Service
+- Configure domain routing
+- Provision TLS certificate
 
 ---
 
-## Repository Structure
+## 🎓 Platform Engineering Highlights
 
-```
-.
-├── apps/
-│   ├── blog/
-│   │   ├── values.yaml
-│   │   └── secret.yaml
-│   └── pdf-utils/
-│       ├── values.yaml
-│       └── secret.yaml
-│
-├── charts/
-│   └── primary-chart/
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-│           ├── argocd-apps.yaml
-│           └── namespaces.yaml
-│
-├── cluster-init/
-│   ├── bootstrap.sh
-│   ├── install-argocd.sh
-│   ├── install-k0s-single-node.sh
-│   └── root-application.yaml
-│
-├── config/
-│   └── k0s.yaml
-│
-└── README.md
-```
+### 1. **Independent Application Lifecycle**
 
-## PostgreSQL
+Each application has its own ArgoCD Application, enabling:
+- **Isolated deployments**: Changes to one app don't affect others
+- **Per-app RBAC**: Different teams can manage different apps (ready for multi-tenancy)
+- **Independent rollback**: Roll back individual apps without touching others
+- **Granular sync policies**: Some apps can auto-sync, others require manual approval
 
-* `infra-apps/postgres.yaml` deploys PostgreSQL 17 via the Bitnami Helm chart. The chart values manage the Postgres service port and point to a SealedSecret (`postgres-admin`) for the superuser credentials.
-* Each app can ship a `postgres-values.yaml` (see `apps/blog/postgres-values.yaml`) that provisions its own database, username, and password through a SealedSecret-backed job.
-
----
-
-## Helm Chart Design
-
-### Primary Helm Chart (Root Chart)
-
-The **primary chart** is responsible for:
-
-* Creating namespaces
-* Defining Argo CD Applications
-* Acting as the *App-of-Apps* root
-
-This chart **does not deploy workloads directly**.
-Instead, it tells Argo CD *what other directories to sync* (`apps/` and `infra-apps/`).
-
----
-
-### Argo CD Application: `infra-apps/`
-
-Purpose:
-
-* Manage **platform and infrastructure components** that live under `/infra-apps`
-* Provide Argo CD Projects for separation of concerns
-
-Characteristics:
-
-* Plain Kubernetes manifests inside the `infra-apps/` directory
-* Synced by the root Argo CD Application defined in the primary chart
-
----
-
-### Per-App ArgoCD Applications
-
-Purpose:
-
-* Deploy **individual user-facing applications** as Knative Services, with each app directory in `/apps` managed by its own ArgoCD Application.
-
-Characteristics:
-
-* **One ArgoCD Application per App**: Each subdirectory in `/apps` gets its own ArgoCD Application (e.g., `app-blog`, `app-pdf-utils`).
-* **Independent Sync**: Each app syncs independently, allowing granular control and isolated deployments.
-* **Knative-native**: Each application is deployed as a Knative Service.
-* **Per-App Configuration**: Each app has its own `values.yaml` for configuration and an optional, encrypted `secret.yaml` for secrets. The `values.yaml` is a Knative service definition, similar to a Google Cloud Run YAML, and it includes the `Ingress` definition for routing.
-* **Dynamic Generation**: The primary Helm chart reads the `appsList` from `values.yaml` and generates ArgoCD Applications automatically.
-* **Source-to-Image (Optional)**: Can build and deploy from a Git repository using Knative Build.
-
-Example `apps/blog/values.yaml` (for the primary domain):
+### 2. **Secrets Management Best Practices**
 
 ```yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: blog
-  namespace: apps
-spec:
-  template:
-    metadata:
-      annotations:
-        autoscaling.knative.dev/target: "10"
-    spec:
-      imagePullSecrets:
-        - name: ghcr-login
-      containers:
-        - image: ghcr.io/benedictusaryo/personal-web-blog:latest
-          ports:
-            - containerPort: 8080
-          env:
-            - name: ENV
-              value: production
-```
-
-Example `apps/blog/domainmapping.yaml`:
-
-```yaml
-apiVersion: serving.knative.dev/v1beta1
-kind: DomainMapping
-metadata:
-  name: benedict-aryo.com
-  namespace: apps
-spec:
-  ref:
-    name: blog
-    kind: Service
-    apiVersion: serving.knative.dev/v1
-```
-
-Example `apps/pdf-utils/values.yaml`:
-
-```yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: pdf-utils
-  namespace: apps
-spec:
-  template:
-    spec:
-      containers:
-        - image: ghcr.io/stirling-tools/stirling-pdf:latest
-          ports:
-            - containerPort: 8080
-```
-
-Example `apps/pdf-utils/domainmapping.yaml`:
-
-```yaml
-apiVersion: serving.knative.dev/v1beta1
-kind: DomainMapping
-metadata:
-  name: pdf.benedict-aryo.com
-  namespace: apps
-spec:
-  ref:
-    name: pdf-utils
-    kind: Service
-    apiVersion: serving.knative.dev/v1
-```
-
-Example `apps/blog/secret.yaml` (encrypted with Sealed Secrets):
-
-```yaml
+# Secrets are encrypted with Sealed Secrets before committing
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
@@ -340,175 +405,134 @@ metadata:
   namespace: apps
 spec:
   encryptedData:
-    DATABASE_URL: Ag...
+    DATABASE_URL: AgBq8F3... # Encrypted, safe to commit
 ```
 
-Each app listed in the primary chart's `appsList` will have its own ArgoCD Application created automatically. The Application will sync all YAML files from the app's directory, including `values.yaml` and `secret.yaml`. For source-to-image builds, the `image` field in `values.yaml` would be replaced by a build step that uses the source from a Git repository, for example:
+Benefits:
+- ✅ Secrets stored in Git (encrypted)
+- ✅ Full audit trail of secret changes
+- ✅ Cluster-specific encryption keys
+- ✅ GitOps-friendly secret rotation
+
+### 3. **Database-per-Service Pattern**
+
+Each application can provision its own PostgreSQL database:
 
 ```yaml
-# In a conceptual values.yaml for a source-to-image build
-# This is not a direct field in the Knative Service spec,
-# but would be used by the Helm chart logic to create a Knative Build resource.
-source:
-  git:
-    url: https://github.com/BenedictusAryo/personal-web-blog.git
-    revision: main
+# apps/blog/postgres-values.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-init-blog
+spec:
+  template:
+    spec:
+      containers:
+        - name: create-db
+          image: postgres:17
+          command:
+            - sh
+            - -c
+            - |
+              psql -c "CREATE DATABASE blog_db;"
+              psql -c "CREATE USER blog_user WITH PASSWORD '***';"
 ```
 
----
+This ensures:
+- **Isolation**: No cross-app database access
+- **Clean separation**: Each app owns its data
+- **Easy cleanup**: Delete app = delete database
 
-## App-of-Apps Pattern
+### 4. **Traffic Management**
 
-Argo CD is configured so that:
+Two-tier routing architecture:
 
-* One **root application** points to this Git repository (`https://github.com/BenedictusAryo/cluster-serverless.git`)
-* That root application installs the **primary Helm chart**
-* The primary Helm chart defines **child Argo CD applications**:
-  * Individual applications for each app in `/apps` (e.g., `app-blog`, `app-pdf-utils`)
-  * One application for `infra-apps`
-
-This provides:
-
-* Clear dependency ordering
-* Independent sync per application
-* Granular control and visibility
-* Easy scaling - just add a new entry to `appsList` in `values.yaml`
-
----
-
-## Cluster Bootstrap (`cluster-init`)
-
-The `cluster-init` directory exists **only for first-time setup**.
-
-### Responsibilities
-
-* Install Argo CD into the cluster
-* Apply required CRDs
-* Create the root Argo CD Application
-
-After this step:
-
-> **All further changes are done via Git only.**
-
-### Typical Flow
-
-1. Create k0s cluster
-2. Configure kubectl access
-3. Run:
-
-   ```bash
-   cd cluster-init
-   ./bootstrap.sh
-   ```
-
-What this script does:
-
-* Installs Argo CD manifests
-* Waits for Argo CD to be ready
-* Applies `root-application.yaml`
-
----
-
-## GitOps Workflow
-
-1. Developer pushes change to GitHub (e.g., updates `apps/blog/values.yaml` or adds a new app)
-2. Argo CD detects drift
-3. Helm templates are rendered (generates individual ArgoCD Applications)
-4. Each affected application syncs independently
-5. Kubernetes reconciles state
-
-No manual `kubectl apply` is required after bootstrap.
-
-### Adding a New App
-
-1. Create a new directory under `/apps` (e.g., `/apps/my-new-app`)
-2. Add `values.yaml` with Knative Service and Ingress definitions
-3. (Optional) Add `secret.yaml` with encrypted secrets
-4. Add app to `appsList` in `charts/primary-chart/values.yaml`:
-   ```yaml
-   appsList:
-     - name: my-new-app
-       path: apps/my-new-app
-       namespace: apps
-       project: default
-   ```
-5. Push to GitHub
-6. ArgoCD will automatically create a new Application `app-my-new-app` and deploy it
-
----
-
-## Single-Node VPS Networking
-
-This setup is optimized for a single-node VPS without an external load balancer:
-
-### Traefik Configuration
-
-* **Service Type**: ClusterIP (not LoadBalancer)
-* **Port Binding**: k0s binds Traefik to host ports 80/443
-* **Public Access**: DNS points to VPS IP → k0s host ports → Traefik
-
-### Ingress Health Checks
-
-By default, Kubernetes Ingress resources expect a LoadBalancer to assign an external IP. In a single-node VPS setup:
-
-* Ingress resources won't get an ADDRESS field populated
-* Argo CD would normally show these as "Progressing"
-* **Solution**: Argo CD is configured to treat all Ingress resources as healthy
-
-This is configured in the `argocd-cm` ConfigMap:
-```yaml
-resource.customizations.health.networking.k8s.io_Ingress: |
-  hs = {}
-  hs.status = "Healthy"
-  hs.message = "Ingress is healthy (custom health check for single-node setup)"
-  return hs
+```
+Traefik (L7 Router)
+  ├── Traditional Ingress → Platform services (ArgoCD)
+  └── DomainMapping → Knative services (Apps)
+          ↓
+       Kourier (Knative router)
+          ↓
+       Knative Services (with auto-scaling)
 ```
 
-### Alternative: MetalLB
+**Why this matters:**
+- Traefik handles TLS termination and edge routing
+- Kourier provides Knative-specific features (traffic splitting, gradual rollouts)
+- Clean separation between platform and application traffic
 
-If you prefer Ingress resources to have IP addresses assigned:
+### 5. **Single-Node VPS Optimization**
 
-1. Install MetalLB
-2. Configure an IP pool with your VPS IP
-3. Change Traefik service type to LoadBalancer
-4. Remove the custom Ingress health check
+Adapted cloud-native patterns for resource-constrained environments:
 
-For most single-node setups, the current configuration is simpler and works perfectly.
-
----
-
-## Security Considerations
-
-* Only Traefik exposes ports 80/443
-* All apps are `ClusterIP`
-* HTTPS enforced everywhere
-* **Secrets are encrypted** in Git using Sealed Secrets
-* Admin UIs are not publicly exposed
-* Git is the only control plane
+| Challenge | Solution |
+|-----------|----------|
+| No LoadBalancer | ClusterIP + host port binding |
+| Ingress health checks fail | Custom ArgoCD health checks |
+| Resource constraints | Knative scale-to-zero |
+| Certificate management | Automated Let's Encrypt via Traefik |
 
 ---
 
-## Who Is This For?
+## 🔐 Security Considerations
 
-This repository is ideal for:
-
-* Platform engineers
-* Kubernetes learners
-* Homelab enthusiasts
-* Developers wanting production-like GitOps flows
-
----
-
-## Future Improvements
-
-* Gateway API migration
-* External Secrets integration
-* OIDC authentication for Argo CD
-* Multi-cluster support
-* Progressive delivery (canary/blue-green)
+- ✅ **TLS Everywhere**: All traffic encrypted with Let's Encrypt certificates
+- ✅ **Secrets Encryption**: Sealed Secrets controller encrypts secrets at rest in Git
+- ✅ **Network Policies**: Only Traefik exposed on ports 80/443
+- ✅ **Image Scanning**: GHCR integration with vulnerability scanning (recommended)
+- ✅ **Least Privilege**: Applications run as non-root with minimal permissions
+- ✅ **Git as Audit Log**: All changes tracked with commit history
 
 ---
 
-## License
+## 📊 Monitoring & Observability (Roadmap)
 
-MIT
+Future enhancements planned:
+
+- **Metrics**: Prometheus + Grafana dashboards
+- **Logging**: Loki for centralized log aggregation
+- **Tracing**: Jaeger for distributed tracing
+- **Alerting**: AlertManager for proactive notifications
+- **Cost Tracking**: Kubecost for resource attribution
+
+---
+
+## 🚧 Future Improvements
+
+- [ ] Migrate to Kubernetes Gateway API
+- [ ] Implement External Secrets Operator (ESO)
+- [ ] Add OIDC authentication for ArgoCD
+- [ ] Multi-cluster support with cluster-gen
+- [ ] Progressive delivery (Flagger integration)
+- [ ] Automated backup/restore workflows
+- [ ] CI/CD integration (GitHub Actions)
+
+---
+
+## 👤 About
+
+This project serves as a portfolio demonstration of:
+- **Platform Engineering**: Design and operation of Kubernetes platforms
+- **GitOps Practices**: Declarative infrastructure and application delivery
+- **Cloud-Native Architecture**: Microservices, serverless, and container orchestration
+- **DevOps Automation**: Zero-touch deployments, self-service platforms
+- **AIOps Readiness**: Observable, automated, and intelligent operations
+
+Built and maintained by **Benedict Aryo Arrisantoso** | [LinkedIn](https://www.linkedin.com/in/benedict-aryo/) | [GitHub](https://github.com/BenedictusAryo)
+
+---
+
+## 📄 License
+
+MIT License - feel free to use this as a reference for your own projects!
+
+---
+
+<div align="center">
+
+**⭐ If you find this project helpful, please consider starring it! ⭐**
+
+Made with ❤️ using Kubernetes, Knative, and ArgoCD
+
+</div>
