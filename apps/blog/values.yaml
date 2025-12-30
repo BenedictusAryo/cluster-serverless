@@ -15,9 +15,11 @@ spec:
       imagePullSecrets:
         - name: ghcr-login
       containers:
-        - image: ghcr.io/benedictusaryo/personal-web-blog@sha256:67a81d84d25aace5eb687a977be3913c70e21f497635323d18804625574cbb25
+        - image: ghcr.io/benedictusaryo/personal-web-blog:latest
           ports:
             - containerPort: 80
+          command:
+            - /usr/local/bin/start-server.sh
           env:
             # Django Settings
             - name: SECRET_KEY
