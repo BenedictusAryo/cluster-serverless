@@ -1,0 +1,98 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: wa-notif-postgres-credentials
+  namespace: apps
+spec:
+  encryptedData:
+    # PLACEHOLDER - Replace with actual sealed secrets generated using kubeseal
+    # Generate using: kubeseal --controller-namespace kube-system --controller-name sealed-secrets-controller --format yaml < secret.yaml
+    database: REPLACE_WITH_SEALED_DATABASE_NAME
+    password: REPLACE_WITH_SEALED_PASSWORD
+    username: REPLACE_WITH_SEALED_USERNAME
+    database-uri: REPLACE_WITH_SEALED_DATABASE_URI
+  template:
+    metadata:
+      name: wa-notif-postgres-credentials
+      namespace: apps
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: postgres-admin
+  namespace: apps
+spec:
+  encryptedData:
+    # PLACEHOLDER - Replace with actual sealed secret for postgres admin password
+    # This should match the postgres-admin secret in infra namespace
+    postgres-password: REPLACE_WITH_SEALED_POSTGRES_ADMIN_PASSWORD
+  template:
+    metadata:
+      name: postgres-admin
+      namespace: apps
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wa-notif-db-provision
+  namespace: apps
+spec:
+  template:
+    spec:
+      containers:
+        - name: psql
+          image: bitnamilegacy/postgresql:17
+          env:
+            - name: PGHOST
+              value: postgres.infra.svc.cluster.local
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-admin
+                  key: postgres-password
+            - name: APP_DB
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-postgres-credentials
+                  key: database
+            - name: APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-postgres-credentials
+                  key: username
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-postgres-credentials
+                  key: password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
+                sleep 2
+              done
+              psql -v ON_ERROR_STOP=1 <<PSQL_EOF
+              SELECT format('CREATE DATABASE %I;', '$APP_DB')
+              WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='$APP_DB')
+              \gexec
+              DO \$body\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='$APP_USER') THEN
+                  EXECUTE format('CREATE USER %I WITH PASSWORD %L', '$APP_USER', '$APP_PASSWORD');
+                ELSE
+                  EXECUTE format('ALTER USER %I WITH PASSWORD %L', '$APP_USER', '$APP_PASSWORD');
+                END IF;
+              END
+              \$body\$;
+              SELECT format('ALTER DATABASE %I OWNER TO %I;', '$APP_DB', '$APP_USER')
+              WHERE EXISTS (SELECT FROM pg_roles WHERE rolname='$APP_USER')
+              \gexec
+              PSQL_EOF
+      restartPolicy: OnFailure

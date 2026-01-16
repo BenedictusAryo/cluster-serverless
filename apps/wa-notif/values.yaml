@@ -1,0 +1,75 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: wa-notif
+  namespace: apps
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+        redeploy-timestamp: "2026-01-16T09:00:00Z"
+    spec:
+      containers:
+        - image: ghcr.io/aldinokemal/go-whatsapp-web-multidevice:latest
+          ports:
+            - containerPort: 3000
+          args:
+            - rest
+          env:
+            # Application Settings
+            - name: APP_PORT
+              value: "3000"
+            - name: APP_HOST
+              value: "0.0.0.0"
+            - name: APP_DEBUG
+              value: "false"
+            - name: APP_OS
+              value: "WANotif"
+            - name: APP_ACCOUNT_VALIDATION
+              value: "false"
+
+            # Basic Auth (optional - from secret)
+            - name: APP_BASIC_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-secrets
+                  key: basic-auth
+                  optional: true
+
+            # Database Configuration - PostgreSQL
+            - name: DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-postgres-credentials
+                  key: database-uri
+
+            # Webhook Configuration (optional - from secret)
+            - name: WHATSAPP_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-secrets
+                  key: webhook-url
+                  optional: true
+
+            - name: WHATSAPP_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wa-notif-secrets
+                  key: webhook-secret
+                  optional: true
+
+          volumeMounts:
+            - name: storages
+              mountPath: /app/storages
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: storages
+          persistentVolumeClaim:
+            claimName: wa-notif-storages

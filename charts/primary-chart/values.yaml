@@ -18,6 +18,10 @@ appsList:
     path: apps/pdf-utils
     namespace: apps
     project: default
+  - name: wa-notif
+    path: apps/wa-notif
+    namespace: apps
+    project: default
 
 # Infrastructure apps configuration
 infraApp:
