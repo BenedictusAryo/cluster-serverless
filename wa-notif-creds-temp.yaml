@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wa-notif-postgres-credentials
+  namespace: apps
+data:
+  database: d2Etbm90aWYK # This is 'wa-notif\n' encoded in base64
+  username: d2Etbm90aWYK # This is 'wa-notif\n' encoded in base64
+  password: d2Etbm90aWYtcGFzc3dvcmQK # This is 'wa-notif-password\n' encoded in base64
+  database-uri: cG9zdGdyZXNxbDp3YS1ub3RpZi1wYXNzd29yZEBwb3N0Z3Jlcy5pbmZyYS5zdmMuY2x1c3Rlci5sb2NhbC93YS1ub3RpZgo= # This is 'postgresql:wa-notif-password@postgres.infra.svc.cluster.local/wa-notif\n' encoded in base64

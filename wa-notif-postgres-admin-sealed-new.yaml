@@ -1,0 +1,13 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: wa-notif-postgres-admin
+  namespace: apps
+spec:
+  encryptedData:
+    postgres-password: AgCH0lu28WQ3OwszPCgPGh9QQMqM0PzXTS7n9ZznPptiJSwh9RsMZ03uWhoUNnGvpT15+/WOTzPM9A3Rslx4zq50v3Vq2vphExIQIGZTvDI3z/74uB8kGXC3mFLqFtzNNfwAl5gP5Pggya+XlHpDn3IaUfVl7yUDKngNEslgI6PClVibtJTxKNnUk2BrZHZsS7NQGRKfVJBEyJDL6Cxhd9yIF1k9NYLh99SSFwkUNhDoURfG8SbVjtae3VEbqY/1vgvVLafwBjipX3bf5Gh+Lr3sSEh/iLg2aWCnDvGLiaOiXohElm/YiG5pNAxzgPVw+YwEKppgAEmoZNtvSXLraRMuMarRxqhI2vwbO69D3lK8PmFw9w/TFKm7RVKnscg0IO09y4o3uKbFn7RLg/5HrLuyR1Fjdbtx6LmR6VA5rtJnyhoE+34I0vY7SkZIZ74Lvm56PIcIvw/s17ViQNZv0jFaIRmgHY/QXtqb88OhI9gcFlADh3ao0kIeVphDDIsXm7CIT6dvYCWCH6S2/T9BVEVtyi+i00Fv/cMQ3eCR9z+3Rn2YVl8ax1yJK1D32kfGk141QuvLu7Bl2bs+iQzYr46YDjNKZ3iKvFgX2fT5y7tluyL54RmCcuT8uPEcyE0ZiPHtBYia6yzVoxg5krqO4bs/DoEbPQSeLZVwqNMRQOMSBosuQkTyJesFthnKOfmbR7jp4Iwo5Hy15pKYe0Y=
+  template:
+    metadata:
+      name: wa-notif-postgres-admin
+      namespace: apps
