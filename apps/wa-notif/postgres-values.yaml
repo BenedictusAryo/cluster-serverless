@@ -24,7 +24,9 @@ metadata:
   namespace: apps
 spec:
   encryptedData:
-    # Using the same encrypted password as the infra postgres-admin secret
+    # NOTE: This encrypted value was copied from infra namespace and will not work
+    # due to SealedSecrets namespace scoping. This needs to be regenerated with:
+    # kubeseal --namespace apps --name wa-notif-postgres-admin --format yaml
     postgres-password: AgAfMWZeQMF9Vd3Lvc/ro7KhQlNJCcmFC/LigBSAlu7Si63O96bf5eCRX06Zpevv8E3DqGim3M7x658Ry4XZOiRht1/BX9WsZHLY+6hCSFWWiZFrvGznCch09BM7mkvtQ708/DCtZgN3hHJRcX2EzjbyqxQt0u+64yDjdp0bGdrFGY2+i5M79C2+RZpLjKGuR9+0Zfst4Vk+ZhWV79mD5+UBIwqaTzL7tOePow9k8jwMJC+QSdxe1SiI0FBwExIl8bnmNLwe0K011j3U6rKpr6xIvqMEKmxsPBwY/OwAOjFAk8iASV5KpU/nvxopg/GYcKK+VFx+LP1vFQaVLQc9EIobWvywMrQLlk25SqvDmQrirljAzB2qf+GJN22FN/w7TXCw90WnLRNZHBX+XH8H0GT27voYTehX/MuVnNsxAbIuX1zYsfyYYYQdYyHzxCfi/18+4RBjZDTIkmUxBMLJNdfzFEl6gQSoNe4TiBxlKJ/SIQmmE/r1gM4zA8dj81rss5iiKdsIh7FxFqlTxwHuxBwHQZ5EfVDMYFHHUDSUNsjkebPWOQvrJOAqqRK5rwn1pFy19NG4PhGMIt/nyOwLxmrLa5zeXVL1BO4Matm4zl5xlIHkx+1kL12pv7sjTabQSXOEiZTyaFd9mgQzH0HPiZAgAXreq0bJu06VeIlZ9g5wcQx6iIGKAUH9b+Y4bQPPvc6M+osYcB0XG1xFDQ==
   template:
     metadata:
