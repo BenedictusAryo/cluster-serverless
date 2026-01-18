@@ -20,7 +20,7 @@ spec:
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
-  name: postgres-admin
+  name: wa-notif-postgres-admin
   namespace: apps
 spec:
   encryptedData:
@@ -29,7 +29,7 @@ spec:
     postgres-password: REPLACE_WITH_SEALED_POSTGRES_ADMIN_PASSWORD
   template:
     metadata:
-      name: postgres-admin
+      name: wa-notif-postgres-admin
       namespace: apps
 ---
 apiVersion: batch/v1
@@ -53,7 +53,7 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-admin
+                  name: wa-notif-postgres-admin
                   key: postgres-password
             - name: APP_DB
               valueFrom:

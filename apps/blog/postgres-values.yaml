@@ -17,14 +17,14 @@ spec:
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
-  name: postgres-admin
+  name: blog-postgres-admin
   namespace: apps
 spec:
   encryptedData:
     postgres-password: AgBWkVsXvAAq/Aad4i7m9LboLYJWgE5Hnu0Y0vyIGTKS86i5+oRP4r8JBLzzT0cFHVK7QO/9QwCaPgrbrEW/zo6pbRP3IX0BARMDZRWnvy9ifK2u1QwJ+4qCR4kU+u/wgQdBIL+JLBas/8WlYNR1osE9HazkmPaXuLPBpBddbOmnZCGLqcNMdLEYfnqOUGvaAa2/hPh2ImLJ5aN/HHxPs2rSAfJ4gWaaa6jbsy5ggaMKt5rCSyEENXMTJsxD7BNsfNnP0LPw7MR/SOUzp2pB07znBzQj8BiF2jbbIzfNpR4QpBTbktWMzwHb1Yt5jAL4F/8ravKw5cRjdZbitQn1nmMobJRns5GCIYCzJe2O+NEQQIwwvbz5Jv/CfeTZ8MhVeTIiUr5LKGmAG9El9DS9mw9y9ZoKdsph+0F8zs+cSDLADMltZlPPUi5zmY9j11GvFRSrveMjw/fNQTs/qDCRX2dDsTVA4fBo8S3sbK9+H+xZwDU7SjRekAsBiVOFSeCR0rudoY2Tz7ersILdkIYGFFcJ70wiVD3VTZLm5iQpRnKNQSynMMKq2UITqekpRxDg72QPX+WVRQXmRZABFkd2d01aX57F9QyrDiJTP9lC0iDKHN9MPQ4QazOSfSCyniGIZWrnfhX/FZmIbOXVRZYluljGfimky1UteXm91c0QCoO+qB+TbVWQR39csmlImRCdW2nS80F1o37kJD1aag==
   template:
     metadata:
-      name: postgres-admin
+      name: blog-postgres-admin
       namespace: apps
 ---
 apiVersion: batch/v1
@@ -48,7 +48,7 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-admin
+                  name: blog-postgres-admin
                   key: postgres-password
             - name: APP_DB
               valueFrom:
