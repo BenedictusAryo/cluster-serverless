@@ -10,7 +10,7 @@ spec:
         autoscaling.knative.dev/min-scale: "1"
         serving.knative.dev/port: "3000"
         serving.knative.dev/protocol-type: "http1"
-        redeploy-timestamp: "2026-01-19T11:28:00Z"
+        redeploy-timestamp: "2026-01-19T11:34:00Z"
     spec:
       containers:
         - image: ghcr.io/aldinokemal/go-whatsapp-web-multidevice:latest
