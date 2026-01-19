@@ -28,7 +28,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`)
+    - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`) || Host(`wa-notif.benedict-aryo.com`)
       kind: Rule
       priority: 10
       middlewares:
@@ -52,6 +52,7 @@ spec:
   dnsNames:
     - benedict-aryo.com
     - pdf.benedict-aryo.com
+    - wa-notif.benedict-aryo.com
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -62,7 +63,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`)
+    - match: Host(`benedict-aryo.com`) || Host(`pdf.benedict-aryo.com`) || Host(`wa-notif.benedict-aryo.com`)
       kind: Rule
       priority: 10
       middlewares:
