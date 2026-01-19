@@ -38,12 +38,7 @@ The database is provisioned automatically via the `wa-notif-db-provision` Kubern
 - **Database User**: `wa-notif`
 - **Host**: `postgres.infra.svc.cluster.local`
 
-## 🔐 Changing Credentials (GitOps Workflow)
-
-Secrets are encrypted using **Bitnami SealedSecrets**. To update the username, password, or webhook settings, use this one-line command to generate the manifest for Git:
-
-```bash
-kubectl create secret opaque wa-notif-secrets \
+kubectl create secret generic wa-notif-secrets \
   --namespace apps \
   --from-literal=basic-auth='admin:YOUR_NEW_PASSWORD' \
   --from-literal=webhook-secret='your_key' \
