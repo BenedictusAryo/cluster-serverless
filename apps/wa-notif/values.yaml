@@ -76,4 +76,4 @@ spec:
           persistentVolumeClaim:
             claimName: wa-notif-storages
 
-force_update
+
