@@ -1,238 +1,70 @@
-# WA-Notif (WhatsApp Notification Service)
+# WhatsApp Notification Service
 
-This application deploys [go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice) - a Go-based WhatsApp Web API with multi-device support.
+A serverless WhatsApp Web gateway based on [aldinokemal/go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice). This service allows you to interact with WhatsApp via a REST API, supporting message sending, media handling, and webhook notifications.
 
-## Overview
+## 🚀 Deployment Overview
 
-WA-Notif provides a REST API for sending WhatsApp messages, managing contacts, and handling WhatsApp notifications. It's deployed as a Knative service with persistent storage and PostgreSQL database support.
+- **Platform**: Knative Service (Serverless)
+- **Namespace**: `apps`
+- **Domain**: [https://wa-notif.benedict-aryo.com](https://wa-notif.benedict-aryo.com)
+- **Infrastructure**: Shared PostgreSQL (`infra` namespace) with dedicated persistence for session storage.
 
-**Domain:** `wa-notif.benedict-aryo.com`
+## ⚙️ Configuration Parameters
 
-## Architecture
+The application is configured via environment variables sourced from `SealedSecrets`.
 
-- **Knative Service**: Runs as a serverless container with `min-scale: 1` (always running)
-- **Database**: PostgreSQL (shared instance in `infra` namespace)
-- **Storage**: Persistent volume for WhatsApp session data
-- **Secrets**: Managed via Bitnami SealedSecrets
+| Parameter | Key in Secret | Description |
+| :--- | :--- | :--- |
+| **Basic Auth** | `basic-auth` | Web UI/API protection (format: `username:password`) |
+| **Database URI** | `database-uri` | Connection string for the shared PostgreSQL instance |
+| **Webhook URL** | `webhook-url` | Destination for incoming message notifications |
+| **Webhook Secret** | `webhook-secret` | Security handshake key sent in webhook headers |
 
-## Files
+## 💾 Persistence & Database
 
-| File | Description |
-|------|-------------|
-| `values.yaml` | Knative Service definition |
-| `domainmapping.yaml` | Domain mapping for external access |
-| `persistence.yaml` | PersistentVolume and PersistentVolumeClaim for session storage |
-| `postgres-values.yaml` | Database provisioning job and credentials |
-| `secret.yaml` | Application secrets (basic auth, webhooks) |
+### Session & Cache Storage (`/app/storages`)
+Even though the application uses PostgreSQL as its primary database, it maintains a **hybrid storage architecture**:
 
-## Prerequisites
+- **PostgreSQL**: Stores core application data, schema versioning, and service-level configurations.
+- **Local SQLite (`chatstorage.db`)**: The application uses a local SQLite database within the storage volume to cache chat history, message states, and temporary session blobs. 
+- **Purpose**: Without this persistent volume, the application would "forget" your login pairing and chat cache every time the Knative service scales to zero or restarts. The sessions are tied to the files in this directory.
+- **Implementation**: We use a **1Gi PersistentVolumeClaim** (`wa-notif-storages`) mounted at `/app/storages`.
+- **Why 1Gi?**: While the main data is in Postgres, the local SQLite cache and paired device secrets can grow over time. 1Gi provides a safe buffer for these files and potential media logs.
+- **Usage**: The app manages these files automatically. Clearing this volume will effectively logout all active WhatsApp sessions.
 
-1. **Sealed Secrets Controller** - Must be installed in the cluster
-2. **PostgreSQL** - Running in the `infra` namespace (provided by the cluster)
-3. **kubeseal** - CLI tool for creating SealedSecrets
+### Database Setup
+The database is provisioned automatically via the `wa-notif-db-provision` Kubernetes Job.
+- **Database Name**: `wa-notif`
+- **Database User**: `wa-notif`
+- **Host**: `postgres.infra.svc.cluster.local`
 
-## Database Setup
+## 🔐 Changing Credentials (GitOps Workflow)
 
-### Step 1: Create the raw Kubernetes secret
-
-Create a temporary file `wa-notif-db-secret.yaml`:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: wa-notif-postgres-credentials
-  namespace: apps
-type: Opaque
-stringData:
-  database: wanotif
-  username: wanotif
-  password: "<your-secure-password>"
-  database-uri: "postgres://wanotif:<your-secure-password>@postgres.infra.svc.cluster.local:5432/wanotif?sslmode=disable"
-```
-
-### Step 2: Create postgres-admin secret (if not exists in apps namespace)
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-admin
-  namespace: apps
-type: Opaque
-stringData:
-  postgres-password: "<postgres-admin-password>"
-```
-
-### Step 3: Seal the secrets
+Secrets are encrypted using **Bitnami SealedSecrets**. To update the username, password, or webhook settings, use this one-line command to generate the manifest for Git:
 
 ```bash
-# Seal the database credentials
-kubeseal --controller-namespace kube-system \
-         --controller-name sealed-secrets-controller \
-         --format yaml < wa-notif-db-secret.yaml > wa-notif-db-sealed.yaml
-
-# Seal the postgres-admin secret
-kubeseal --controller-namespace kube-system \
-         --controller-name sealed-secrets-controller \
-         --format yaml < postgres-admin-secret.yaml > postgres-admin-sealed.yaml
+kubectl create secret opaque wa-notif-secrets \
+  --namespace apps \
+  --from-literal=basic-auth='admin:YOUR_NEW_PASSWORD' \
+  --from-literal=webhook-secret='your_key' \
+  --from-literal=webhook-url='https://your-api.com/callback' \
+  --dry-run=client -o yaml | \
+  kubeseal --controller-namespace kube-system --controller-name sealed-secrets-controller -o yaml > apps/wa-notif/secret.yaml
 ```
 
-### Step 4: Update postgres-values.yaml
+> **Note**: Always wrap your secret values in **single quotes (`'`)** as shown above. This prevents the terminal shell from misinterpreting special characters like `$`, `!`, or `*`.
 
-Replace the placeholder values in `postgres-values.yaml` with the encrypted values from the sealed secrets.
+After running the command, **commit and push** the changes to GitHub. Argo CD will sync the secret, and you should update the `redeploy-timestamp` in `values.yaml` to trigger a fresh rollout.
 
-### Step 5: Database Provisioning
+## 📖 Usage Guide
 
-The database and user will be automatically created by the `wa-notif-db-provision` Job when the application is deployed. The job:
+Once logged in via the browser, you will see the dashboard where you can pair your device by scanning the QR code.
 
-1. Waits for PostgreSQL to be ready
-2. Creates the `wanotif` database if it doesn't exist
-3. Creates the `wanotif` user if it doesn't exist
-4. Grants ownership of the database to the user
+### API Endpoints
+The service follows the standard API structure of the upstream project:
+- `GET /` - Dashboard / Session status
+- `GET /api/devices` - List connected devices / Get QR Code
+- `POST /api/send-message` - Send text messages
+- `POST /api/send-image` - Send media files
 
-**Note:** The go-whatsapp-web-multidevice application will automatically create the required tables on first startup.
-
-## Application Secrets Setup
-
-### Step 1: Create the raw secret
-
-Create a temporary file `wa-notif-app-secret.yaml`:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: wa-notif-secrets
-  namespace: apps
-type: Opaque
-stringData:
-  # Format: "username:password" - multiple credentials separated by comma
-  basic-auth: "admin:your-secure-password"
-  # Optional: Webhook URL for receiving events
-  webhook-url: ""
-  # Optional: HMAC secret for webhook verification
-  webhook-secret: "your-webhook-secret"
-```
-
-### Step 2: Seal the secret
-
-```bash
-kubeseal --controller-namespace kube-system \
-         --controller-name sealed-secrets-controller \
-         --format yaml < wa-notif-app-secret.yaml > wa-notif-app-sealed.yaml
-```
-
-### Step 3: Update secret.yaml
-
-Replace the placeholder values in `secret.yaml` with the encrypted values from the sealed secret.
-
-## Deployment
-
-The application is automatically deployed via ArgoCD. After updating the sealed secrets:
-
-1. Commit and push the changes
-2. ArgoCD will sync the application
-3. The database provisioning job will run
-4. The Knative service will start
-
-## Usage
-
-### Access the Web UI
-
-Navigate to: `https://wa-notif.benedict-aryo.com`
-
-### QR Code Login
-
-1. Open the web UI
-2. Click "Login with QR Code"
-3. Scan the QR code with your WhatsApp mobile app
-4. The session will be stored persistently
-
-### API Documentation
-
-The API documentation is available at:
-- OpenAPI spec: `https://wa-notif.benedict-aryo.com/api/docs`
-- Swagger UI (if enabled): `https://wa-notif.benedict-aryo.com/swagger`
-
-### Key API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/app/login` | GET | Get QR code for login |
-| `/app/logout` | DELETE | Logout current session |
-| `/send/message` | POST | Send text message |
-| `/send/image` | POST | Send image message |
-| `/send/document` | POST | Send document |
-| `/send/video` | POST | Send video message |
-| `/user/info` | GET | Get user info |
-| `/user/avatar` | GET | Get user avatar |
-
-For complete API documentation, see: [OpenAPI Specification](https://github.com/aldinokemal/go-whatsapp-web-multidevice/blob/main/docs/openapi.yaml)
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `APP_PORT` | Application port | `3000` |
-| `APP_HOST` | Host address | `0.0.0.0` |
-| `APP_DEBUG` | Enable debug logging | `false` |
-| `APP_OS` | Device name shown in WhatsApp | `WANotif` |
-| `APP_BASIC_AUTH` | Basic auth credentials | (from secret) |
-| `DB_URI` | PostgreSQL connection URI | (from secret) |
-| `WHATSAPP_WEBHOOK` | Webhook URL for events | (optional) |
-| `WHATSAPP_WEBHOOK_SECRET` | Webhook HMAC secret | (optional) |
-
-### Webhook Events
-
-Available webhook events:
-- `message` - Text, media, contact, location messages
-- `message.reaction` - Emoji reactions
-- `message.revoked` - Deleted messages
-- `message.edited` - Edited messages
-- `message.ack` - Delivery/read receipts
-- `group.participants` - Group member events
-
-## Monitoring
-
-The application is monitored via ArgoCD. Access ArgoCD to view:
-- Deployment status
-- Pod logs
-- Resource usage
-- Health status
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database connection failed**
-   - Check if PostgreSQL is running: `kubectl get pods -n infra`
-   - Verify the database URI in the secret
-
-2. **QR code not generating**
-   - Check application logs: `kubectl logs -n apps -l serving.knative.dev/service=wa-notif`
-   - Ensure storage volume is properly mounted
-
-3. **Session lost after restart**
-   - Verify PVC is properly bound: `kubectl get pvc -n apps wa-notif-storages`
-   - Check if session data exists in `/app/storages`
-
-### View Logs
-
-```bash
-kubectl logs -n apps -l serving.knative.dev/service=wa-notif -f
-```
-
-### Access Pod Shell
-
-```bash
-kubectl exec -it -n apps $(kubectl get pods -n apps -l serving.knative.dev/service=wa-notif -o jsonpath='{.items[0].metadata.name}') -- /bin/sh
-```
-
-## References
-
-- [go-whatsapp-web-multidevice GitHub](https://github.com/aldinokemal/go-whatsapp-web-multidevice)
-- [Docker Image](https://github.com/aldinokemal/go-whatsapp-web-multidevice/pkgs/container/go-whatsapp-web-multidevice)
-- [Webhook Payload Documentation](https://github.com/aldinokemal/go-whatsapp-web-multidevice/blob/main/docs/webhook-payload.md)
+For full API documentation (Swagger), you can usually visit `/swagger/index.html` on your deployment or refer to the [upstream documentation](https://github.com/aldinokemal/go-whatsapp-web-multidevice).
