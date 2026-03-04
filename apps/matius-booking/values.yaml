@@ -9,7 +9,7 @@ spec:
       annotations:
         autoscaling.knative.dev/target: "10"
         autoscaling.knative.dev/min-scale: "1"
-        redeploy-timestamp: "2026-03-05T00:00:01Z"
+        redeploy-timestamp: "2026-03-05T00:00:05Z"
 
     spec:
       imagePullSecrets:
