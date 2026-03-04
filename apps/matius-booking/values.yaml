@@ -32,6 +32,11 @@ spec:
               value: "matius.benedict-aryo.com"
             - name: DJANGO_SETTINGS_MODULE
               value: "config.settings.prod"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-secrets
+                  key: database-url
 
             # Database Configuration (PostgreSQL)
             - name: DB_ENGINE

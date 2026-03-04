@@ -9,7 +9,7 @@ data:
   # Base64 encoded values. User to provide these.
   database: "bWF0aXVzX2Jvb2tpbmc=" # "matius_booking"
   username: "bWF0aXVzX3VzZXI="    # "matius_user"
-  password: "<USER_TO_PROVIDE_BASE64_PASSWORD>"
+  password: "bWF0aXVzX3Bhc3MxMjM="
 ---
 apiVersion: v1
 kind: Secret
@@ -20,7 +20,7 @@ type: Opaque
 data:
   # This should match the postgres-admin secret in infra namespace
   # User to provide the base64 encoded admin password from infra/postgres-admin
-  postgres-password: "<USER_TO_PROVIDE_BASE64_ADMIN_PASSWORD>"
+  postgres-password: "cGFzc3dvcmQxMjM="
 ---
 apiVersion: batch/v1
 kind: Job
