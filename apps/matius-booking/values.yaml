@@ -9,8 +9,7 @@ spec:
       annotations:
         autoscaling.knative.dev/target: "10"
         autoscaling.knative.dev/min-scale: "1"
-        # The redeploy-timestamp can be updated by CI to trigger rollouts
-        redeploy-timestamp: "2026-03-05T00:00:00Z"
+        redeploy-timestamp: "2026-03-05T00:00:01Z"
 
     spec:
       imagePullSecrets:
@@ -20,51 +19,22 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            # Django Settings
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: matius-booking-secrets
                   key: secret-key
             - name: DEBUG
-              value: "False"
+              value: "True" # Set to True for testing visibility
             - name: ALLOWED_HOSTS
-              value: "matius.benedict-aryo.com"
+              value: "*"
             - name: DJANGO_SETTINGS_MODULE
               value: "config.settings.prod"
             - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: matius-booking-secrets
-                  key: database-url
-
-            # Database Configuration (PostgreSQL)
+              value: "sqlite:////app/db.sqlite3"
             - name: DB_ENGINE
-              value: "django.db.backends.postgresql"
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: matius-booking-db-credentials
-                  key: database
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: matius-booking-db-credentials
-                  key: username
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: matius-booking-db-credentials
-                  key: password
-            - name: DB_HOST
-              value: "postgres.infra.svc.cluster.local"
-            - name: DB_PORT
-              value: "5432"
-
-            # Application URL
+              value: "django.db.backends.sqlite3"
             - name: BASE_URL
-              value: "https://matius.benedict-aryo.com"
-
-            # Python Settings
+              value: "http://matius.benedict-aryo.com"
             - name: PYTHONUNBUFFERED
               value: "1"
