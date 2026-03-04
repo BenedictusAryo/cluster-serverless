@@ -9,7 +9,7 @@ spec:
       annotations:
         autoscaling.knative.dev/target: "10"
         autoscaling.knative.dev/min-scale: "1"
-        redeploy-timestamp: "2026-03-05T00:00:05Z"
+        redeploy-timestamp: "2026-03-05T00:00:10Z"
 
     spec:
       imagePullSecrets:
@@ -19,22 +19,51 @@ spec:
           ports:
             - containerPort: 8000
           env:
+            # Django Settings
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: matius-booking-secrets
                   key: secret-key
             - name: DEBUG
-              value: "True" # Set to True for testing visibility
+              value: "False"
             - name: ALLOWED_HOSTS
-              value: "*"
+              value: "matius.benedict-aryo.com"
             - name: DJANGO_SETTINGS_MODULE
               value: "config.settings.prod"
             - name: DATABASE_URL
-              value: "sqlite:////app/db.sqlite3"
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-secrets
+                  key: database-url
+
+            # Database Configuration (PostgreSQL)
             - name: DB_ENGINE
-              value: "django.db.backends.sqlite3"
+              value: "django.db.backends.postgresql"
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-db-credentials
+                  key: database
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-db-credentials
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-db-credentials
+                  key: password
+            - name: DB_HOST
+              value: "postgres.infra.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+
+            # Application URL
             - name: BASE_URL
-              value: "http://matius.benedict-aryo.com"
+              value: "https://matius.benedict-aryo.com"
+
+            # Python Settings
             - name: PYTHONUNBUFFERED
               value: "1"
