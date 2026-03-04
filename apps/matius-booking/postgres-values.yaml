@@ -1,0 +1,88 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: matius-booking-db-credentials
+  namespace: apps
+type: Opaque
+data:
+  # Base64 encoded values. User to provide these.
+  database: "bWF0aXVzX2Jvb2tpbmc=" # "matius_booking"
+  username: "bWF0aXVzX3VzZXI="    # "matius_user"
+  password: "<USER_TO_PROVIDE_BASE64_PASSWORD>"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: matius-booking-postgres-admin
+  namespace: apps
+type: Opaque
+data:
+  # This should match the postgres-admin secret in infra namespace
+  # User to provide the base64 encoded admin password from infra/postgres-admin
+  postgres-password: "<USER_TO_PROVIDE_BASE64_ADMIN_PASSWORD>"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: matius-booking-db-provision
+  namespace: apps
+spec:
+  template:
+    spec:
+      containers:
+        - name: psql
+          image: bitnamilegacy/postgresql:17
+          env:
+            - name: PGHOST
+              value: postgres.infra.svc.cluster.local
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-postgres-admin
+                  key: postgres-password
+            - name: APP_DB
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-db-credentials
+                  key: database
+            - name: APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-db-credentials
+                  key: username
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matius-booking-db-credentials
+                  key: password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
+                sleep 2
+              done
+              psql -v ON_ERROR_STOP=1 <<PSQL_EOF
+              SELECT format('CREATE DATABASE %I;', '$APP_DB')
+              WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='$APP_DB')
+              \gexec
+              DO \$body\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='$APP_USER') THEN
+                  EXECUTE format('CREATE USER %I WITH PASSWORD %L', '$APP_USER', '$APP_PASSWORD');
+                ELSE
+                  EXECUTE format('ALTER USER %I WITH PASSWORD %L', '$APP_USER', '$APP_PASSWORD');
+                END IF;
+              END
+              \$body\$;
+              SELECT format('ALTER DATABASE %I OWNER TO %I;', '$APP_DB', '$APP_USER')
+              WHERE EXISTS (SELECT FROM pg_roles WHERE rolname='$APP_USER')
+              \gexec
+              PSQL_EOF
+      restartPolicy: OnFailure

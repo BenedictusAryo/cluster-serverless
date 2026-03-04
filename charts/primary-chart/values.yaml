@@ -22,6 +22,10 @@ appsList:
     path: apps/wa-notif
     namespace: apps
     project: default
+  - name: matius-booking
+    path: apps/matius-booking
+    namespace: apps
+    project: default
 
 # Infrastructure apps configuration
 infraApp:
